@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#102a43"><meta name="apple-mobile-web-app-capable" content="yes">
+  <title>Project Spotlight</title><link rel="manifest" href="./manifest.webmanifest"><link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+<header class="topbar"><div class="brandmark"><span class="bolt">◆</span><div><strong>PROJECT</strong><span>SPOTLIGHT</span></div></div><button id="installBtn" class="ghost hidden">Install App</button></header>
+<main>
+<section id="homeView" class="view">
+ <div class="hero"><div><p class="eyebrow">CONTRACTOR MARKETING, SIMPLIFIED</p><h1>Turn finished work into polished social posts.</h1><p>Capture the job, add your branding, generate the graphic, and share it.</p></div><button id="newProjectBtn" class="primary big">＋ New Project</button></div>
+ <div class="sectionhead"><div><p class="eyebrow">YOUR WORK</p><h2>Projects</h2></div><button id="brandBtn" class="secondary">Brand Kit</button></div>
+ <div id="projectGrid" class="project-grid"></div><div id="emptyState" class="empty"><div class="empty-icon">▧</div><h3>No projects yet</h3><p>Create your first project to build a branded before/after graphic.</p></div>
+</section>
+<section id="editorView" class="view hidden">
+ <button class="back" data-home>← Projects</button><div class="editor-head"><div><p class="eyebrow">PROJECT EDITOR</p><h1 id="editorHeading">New Project</h1></div><button id="saveProjectBtn" class="primary">Save Project</button></div>
+ <div class="editor-grid"><div class="panel"><h2>1. Project details</h2>
+  <label>Project title<input id="projectTitle" placeholder="e.g. Basement Renovation"></label>
+  <label>Short description<textarea id="projectDescription" rows="5" placeholder="Describe the work completed…"></textarea></label>
+  <div class="two"><label>Category<input id="projectCategory" placeholder="Electrical, Kitchen…"></label><label>Location<input id="projectLocation" placeholder="West Chester, PA"></label></div>
+  <h2>2. Photos</h2><div class="photo-pair">
+   <label class="photo-drop"><span>BEFORE</span><img id="beforePreview" class="hidden"><div id="beforePrompt">📷<b>Take or choose photo</b><small>Tap to add</small></div><input id="beforeInput" type="file" accept="image/*" capture="environment"></label>
+   <label class="photo-drop"><span>AFTER</span><img id="afterPreview" class="hidden"><div id="afterPrompt">✨<b>Take or choose photo</b><small>Tap to add</small></div><input id="afterInput" type="file" accept="image/*" capture="environment"></label>
+  </div>
+ </div>
+ <div class="panel preview-panel"><div class="preview-title"><div><h2>3. Design</h2><p>Choose a layout and preview the finished post.</p></div></div>
+  <div id="templatePicker" class="template-picker"><button data-template="split" class="active">Before & After</button><button data-template="spotlight">Spotlight</button><button data-template="portrait">Portrait</button><button data-template="story">Story</button></div>
+  <div class="canvas-wrap"><canvas id="designCanvas" width="1080" height="1080"></canvas></div>
+  <div class="actions"><button id="downloadBtn" class="secondary">↓ Export JPG</button><button id="shareBtn" class="primary">↗ Share</button></div>
+ </div></div>
+</section>
+<section id="brandView" class="view hidden"><button class="back" data-home>← Projects</button><div class="editor-head"><div><p class="eyebrow">SET IT ONCE</p><h1>Brand Kit</h1></div><button id="saveBrandBtn" class="primary">Save Brand Kit</button></div>
+ <div class="brand-layout"><div class="panel"><label>Company name<input id="companyName" placeholder="Acme Renovations"></label><label>Tagline<input id="tagline" placeholder="Built right. Built to last."></label>
+ <div class="two"><label>Phone<input id="phone" placeholder="(555) 555-1234"></label><label>Website<input id="website" placeholder="acmerenovations.com"></label></div>
+ <div class="two"><label>Primary color<input id="primaryColor" type="color" value="#0b3a67"></label><label>Accent color<input id="accentColor" type="color" value="#f4c430"></label></div>
+ <label class="logo-upload">Business logo<input id="logoInput" type="file" accept="image/*"><div id="logoBox">＋ Upload logo</div></label></div>
+ <div class="panel brand-demo"><p class="eyebrow">PREVIEW</p><div id="brandCard"><div id="brandLogoPreview" class="demo-logo">PS</div><h2 id="brandNamePreview">YOUR COMPANY</h2><p id="brandTagPreview">Quality work. Beautiful results.</p></div></div></div>
+</section>
+</main><div id="toast"></div><script src="./app.js"></script>
+</body></html>
