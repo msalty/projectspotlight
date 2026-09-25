@@ -50,4 +50,46 @@
 })();
 </script>
 <script src="./app-v4.js" defer></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  var byId=function(id){return document.getElementById(id)};
+  var toast=function(msg){var t=byId('toast');if(!t)return;t.textContent=msg;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2200)};
+  var read=function(key,fallback){try{var v=localStorage.getItem(key);return v?JSON.parse(v):fallback}catch(e){return fallback}};
+  var write=function(key,value){try{localStorage.setItem(key,JSON.stringify(value));return true}catch(e){toast('Browser storage is unavailable.');return false}};
+  var updateBrand=function(){
+    var primary=byId('primaryColor').value, accent=byId('accentColor').value;
+    byId('brandCard').style.backgroundColor=primary;
+    byId('brandLogoPreview').style.backgroundColor=accent;
+    byId('brandNamePreview').textContent=byId('companyName').value||'YOUR COMPANY';
+    byId('brandTagPreview').textContent=byId('tagline').value||'Quality work. Beautiful results.';
+  };
+  var loadBrand=function(){
+    var b=read('ps-brand',{});
+    ['companyName','tagline','phone','website','primaryColor','accentColor'].forEach(function(k){if(b[k])byId(k).value=b[k]});
+    updateBrand();
+  };
+  ['companyName','tagline','phone','website','primaryColor','accentColor'].forEach(function(k){
+    var el=byId(k); if(el){el.addEventListener('input',updateBrand);el.addEventListener('change',updateBrand)}
+  });
+  byId('brandBtn').addEventListener('click',loadBrand);
+  byId('saveBrandBtn').addEventListener('click',function(){
+    var b={};['companyName','tagline','phone','website','primaryColor','accentColor'].forEach(function(k){b[k]=byId(k).value});
+    if(write('ps-brand',b))toast('Brand Kit saved.');
+  });
+  byId('saveProjectBtn').addEventListener('click',function(){
+    var title=byId('projectTitle').value.trim();if(!title){toast('Add a project title first.');return}
+    var ps=read('ps-projects',[]), id=byId('editorView').getAttribute('data-project-id')||String(Date.now());
+    var p={id:id,title:title,description:byId('projectDescription').value.trim(),category:byId('projectCategory').value.trim(),location:byId('projectLocation').value.trim(),updated:Date.now()};
+    var found=false;for(var i=0;i<ps.length;i++){if(ps[i].id===id){ps[i]=p;found=true;break}}if(!found)ps.push(p);
+    if(write('ps-projects',ps)){byId('editorView').setAttribute('data-project-id',id);byId('editorHeading').textContent=title;toast('Project saved.')}
+  });
+  byId('newProjectBtn').addEventListener('click',function(){byId('editorView').removeAttribute('data-project-id')});
+  ['beforeInput','afterInput'].forEach(function(id){
+    byId(id).addEventListener('change',function(e){var f=e.target.files&&e.target.files[0];if(!f)return;var which=id==='beforeInput'?'before':'after';var img=byId(which+'Preview');img.src=URL.createObjectURL(f);img.classList.remove('hidden');byId(which+'Prompt').classList.add('hidden')})
+  });
+  byId('logoInput').addEventListener('change',function(e){var f=e.target.files&&e.target.files[0];if(!f)return;var box=byId('brandLogoPreview');box.innerHTML='';var img=document.createElement('img');img.src=URL.createObjectURL(f);box.appendChild(img);byId('logoBox').textContent=f.name});
+  document.querySelectorAll('#templatePicker button').forEach(function(btn){btn.addEventListener('click',function(){document.querySelectorAll('#templatePicker button').forEach(function(x){x.classList.remove('active')});btn.classList.add('active')})});
+  loadBrand();
+});
+</script>
 </body></html>
