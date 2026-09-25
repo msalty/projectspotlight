@@ -49,13 +49,38 @@
   if('serviceWorker' in navigator){navigator.serviceWorker.getRegistrations().then(function(rs){rs.forEach(function(r){r.unregister()})})}
 })();
 </script>
-<script src="./app-v4.js" defer></script>
+
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   var byId=function(id){return document.getElementById(id)};
   var toast=function(msg){var t=byId('toast');if(!t)return;t.textContent=msg;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2200)};
   var read=function(key,fallback){try{var v=localStorage.getItem(key);return v?JSON.parse(v):fallback}catch(e){return fallback}};
   var write=function(key,value){try{localStorage.setItem(key,JSON.stringify(value));return true}catch(e){toast('Browser storage is unavailable.');return false}};
+  var photoData={before:null,after:null};
+  var esc=function(s){var d=document.createElement('div');d.textContent=s||'';return d.innerHTML};
+  var renderProjects=function(){
+    var ps=read('ps-projects',[]),grid=byId('projectGrid'),empty=byId('emptyState');grid.innerHTML='';empty.classList.toggle('hidden',ps.length>0);
+    ps.sort(function(a,b){return b.updated-a.updated}).forEach(function(p){
+      var card=document.createElement('article');card.className='project-card';
+      card.innerHTML=(p.after||p.before?'<img src="'+(p.after||p.before)+'">':'<div style="height:190px;background:#d9e2ec"></div>')+'<div class="body"><h3>'+esc(p.title||'Untitled Project')+'</h3><p>'+esc(p.category||'Project')+' · '+new Date(p.updated).toLocaleDateString()+'</p></div>';
+      card.addEventListener('click',function(){byId('editorView').setAttribute('data-project-id',p.id);byId('projectTitle').value=p.title||'';byId('projectDescription').value=p.description||'';byId('projectCategory').value=p.category||'';byId('projectLocation').value=p.location||'';photoData.before=p.before||null;photoData.after=p.after||null;['before','after'].forEach(function(w){if(photoData[w]){byId(w+'Preview').src=photoData[w];byId(w+'Preview').classList.remove('hidden');byId(w+'Prompt').classList.add('hidden')}});document.querySelectorAll('.view').forEach(function(v){v.classList.add('hidden')});byId('editorView').classList.remove('hidden');drawDesign()});grid.appendChild(card)
+    })
+  };
+  var readPhoto=function(file,cb){var r=new FileReader();r.onload=function(){cb(r.result)};r.readAsDataURL(file)};
+  var cover=function(ctx,img,x,y,w,h,done){if(!img){ctx.fillStyle='#d9e2ec';ctx.fillRect(x,y,w,h);done();return}var im=new Image();im.onload=function(){var r=Math.max(w/im.width,h/im.height),nw=im.width*r,nh=im.height*r;ctx.drawImage(im,x+(w-nw)/2,y+(h-nh)/2,nw,nh);done()};im.onerror=done;im.src=img};
+  var wrap=function(ctx,text,x,y,max,size,color,bold){ctx.fillStyle=color;ctx.font=(bold?'800 ':'400 ')+size+'px Arial';var words=(text||'').split(/\\s+/),line='',lines=[];words.forEach(function(w){var t=line?line+' '+w:w;if(ctx.measureText(t).width>max&&line){lines.push(line);line=w}else line=t});if(line)lines.push(line);lines.slice(0,5).forEach(function(l,i){ctx.fillText(l,x,y+i*size*1.18)})};
+  var drawDesign=function(){
+    var canvas=byId('designCanvas'),active=document.querySelector('#templatePicker button.active'),mode=active?active.getAttribute('data-template'):'split',portrait=mode==='portrait',story=mode==='story';
+    canvas.width=1080;canvas.height=story?1920:(portrait?1350:1080);var ctx=canvas.getContext('2d'),primary=byId('primaryColor').value||'#0b3a67',accent=byId('accentColor').value||'#f4c430',title=byId('projectTitle').value||'YOUR PROJECT TITLE',desc=byId('projectDescription').value||'Add a short description of the work completed.';
+    ctx.fillStyle=primary;ctx.fillRect(0,0,canvas.width,canvas.height);
+    function finish(){
+      if(mode==='split'){ctx.fillStyle=accent;ctx.fillRect(0,680,1080,14);wrap(ctx,title.toUpperCase(),55,780,970,54,'#fff',true);wrap(ctx,desc,55,850,900,29,'#e8eef3',false)}
+      else if(mode==='spotlight'){ctx.fillStyle=primary;ctx.fillRect(0,0,1080,150);wrap(ctx,(byId('companyName').value||'YOUR COMPANY').toUpperCase(),55,90,600,42,'#fff',true);wrap(ctx,'PROJECT SPOTLIGHT',650,90,380,35,accent,true);ctx.fillStyle=primary;ctx.fillRect(0,800,1080,280);wrap(ctx,title.toUpperCase(),55,880,970,50,'#fff',true);wrap(ctx,desc,55,945,930,27,'#e8eef3',false)}
+      else {var h=story?1120:760;ctx.fillStyle=primary;ctx.fillRect(0,h,1080,canvas.height-h);wrap(ctx,'PROJECT SPOTLIGHT',55,h+70,900,26,accent,true);wrap(ctx,title.toUpperCase(),55,h+150,970,story?64:56,'#fff',true);wrap(ctx,desc,55,h+235,930,story?35:29,'#e8eef3',false)}
+    }
+    if(mode==='split'){cover(ctx,photoData.before,0,0,540,680,function(){cover(ctx,photoData.after,540,0,540,680,finish)})}
+    else {var h=mode==='story'?1120:(mode==='portrait'?760:650),y=mode==='spotlight'?150:0;cover(ctx,photoData.after||photoData.before,0,y,1080,h,function(){finish()})}
+  };
   var updateBrand=function(){
     var primary=byId('primaryColor').value, accent=byId('accentColor').value;
     byId('brandCard').style.backgroundColor=primary;
@@ -79,17 +104,18 @@ document.addEventListener('DOMContentLoaded', function () {
   byId('saveProjectBtn').addEventListener('click',function(){
     var title=byId('projectTitle').value.trim();if(!title){toast('Add a project title first.');return}
     var ps=read('ps-projects',[]), id=byId('editorView').getAttribute('data-project-id')||String(Date.now());
-    var p={id:id,title:title,description:byId('projectDescription').value.trim(),category:byId('projectCategory').value.trim(),location:byId('projectLocation').value.trim(),updated:Date.now()};
+    var p={id:id,title:title,description:byId('projectDescription').value.trim(),category:byId('projectCategory').value.trim(),location:byId('projectLocation').value.trim(),before:photoData.before,after:photoData.after,updated:Date.now()};
     var found=false;for(var i=0;i<ps.length;i++){if(ps[i].id===id){ps[i]=p;found=true;break}}if(!found)ps.push(p);
-    if(write('ps-projects',ps)){byId('editorView').setAttribute('data-project-id',id);byId('editorHeading').textContent=title;toast('Project saved.')}
+    if(write('ps-projects',ps)){byId('editorView').setAttribute('data-project-id',id);byId('editorHeading').textContent=title;renderProjects();toast('Project saved.')}
   });
-  byId('newProjectBtn').addEventListener('click',function(){byId('editorView').removeAttribute('data-project-id')});
+  byId('newProjectBtn').addEventListener('click',function(){byId('editorView').removeAttribute('data-project-id');photoData.before=null;photoData.after=null;['projectTitle','projectDescription','projectCategory','projectLocation'].forEach(function(k){byId(k).value=''});drawDesign()});
   ['beforeInput','afterInput'].forEach(function(id){
-    byId(id).addEventListener('change',function(e){var f=e.target.files&&e.target.files[0];if(!f)return;var which=id==='beforeInput'?'before':'after';var img=byId(which+'Preview');img.src=URL.createObjectURL(f);img.classList.remove('hidden');byId(which+'Prompt').classList.add('hidden')})
+    byId(id).addEventListener('change',function(e){var f=e.target.files&&e.target.files[0];if(!f)return;var which=id==='beforeInput'?'before':'after';readPhoto(f,function(data){photoData[which]=data;var img=byId(which+'Preview');img.src=data;img.classList.remove('hidden');byId(which+'Prompt').classList.add('hidden');drawDesign()})})
   });
   byId('logoInput').addEventListener('change',function(e){var f=e.target.files&&e.target.files[0];if(!f)return;var box=byId('brandLogoPreview');box.innerHTML='';var img=document.createElement('img');img.src=URL.createObjectURL(f);box.appendChild(img);byId('logoBox').textContent=f.name});
-  document.querySelectorAll('#templatePicker button').forEach(function(btn){btn.addEventListener('click',function(){document.querySelectorAll('#templatePicker button').forEach(function(x){x.classList.remove('active')});btn.classList.add('active')})});
-  loadBrand();
+  document.querySelectorAll('#templatePicker button').forEach(function(btn){btn.addEventListener('click',function(){document.querySelectorAll('#templatePicker button').forEach(function(x){x.classList.remove('active')});btn.classList.add('active');drawDesign()})});
+  ['projectTitle','projectDescription','projectCategory','projectLocation'].forEach(function(k){byId(k).addEventListener('input',drawDesign)});
+  loadBrand();renderProjects();drawDesign();
 });
 </script>
 </body></html>
