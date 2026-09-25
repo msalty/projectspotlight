@@ -1,121 +1,44 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#102a43"><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta name="apple-mobile-web-app-capable" content="yes">
-  <title>Project Spotlight</title><link rel="manifest" href="./manifest.webmanifest"><link rel="stylesheet" href="./styles.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0f1b2d">
+  <meta name="description" content="Turn finished jobs into branded before & after social posts.">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Spotlight">
+  <title>Project Spotlight</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+  <link rel="preload" href="./fonts/inter-400.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="./fonts/anton.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="./css/app.css">
 </head>
 <body>
-<header class="topbar"><div class="brandmark"><span class="bolt">◆</span><div><strong>PROJECT</strong><span>SPOTLIGHT</span></div></div><button id="installBtn" class="ghost hidden">Install App</button></header>
-<main>
-<section id="homeView" class="view">
- <div class="hero"><div><p class="eyebrow">CONTRACTOR MARKETING, SIMPLIFIED</p><h1>Turn finished work into polished social posts.</h1><p>Capture the job, add your branding, generate the graphic, and share it.</p></div><button id="newProjectBtn" class="primary big">＋ New Project</button></div>
- <div class="sectionhead"><div><p class="eyebrow">YOUR WORK</p><h2>Projects</h2></div><button id="brandBtn" class="secondary">Brand Kit</button></div>
- <div id="projectGrid" class="project-grid"></div><div id="emptyState" class="empty"><div class="empty-icon">▧</div><h3>No projects yet</h3><p>Create your first project to build a branded before/after graphic.</p></div>
-</section>
-<section id="editorView" class="view hidden">
- <button class="back" data-home>← Projects</button><div class="editor-head"><div><p class="eyebrow">PROJECT EDITOR</p><h1 id="editorHeading">New Project</h1></div><button id="saveProjectBtn" class="primary">Save Project</button></div>
- <div class="editor-grid"><div class="panel"><h2>1. Project details</h2>
-  <label>Project title<input id="projectTitle" placeholder="e.g. Basement Renovation"></label>
-  <label>Short description<textarea id="projectDescription" rows="5" placeholder="Describe the work completed…"></textarea></label>
-  <div class="two"><label>Category<input id="projectCategory" placeholder="Electrical, Kitchen…"></label><label>Location<input id="projectLocation" placeholder="West Chester, PA"></label></div>
-  <h2>2. Photos</h2><div class="photo-pair">
-   <label class="photo-drop"><span>BEFORE</span><img id="beforePreview" class="hidden"><div id="beforePrompt">📷<b>Take or choose photo</b><small>Tap to add</small></div><input id="beforeInput" type="file" accept="image/*" capture="environment"></label>
-   <label class="photo-drop"><span>AFTER</span><img id="afterPreview" class="hidden"><div id="afterPrompt">✨<b>Take or choose photo</b><small>Tap to add</small></div><input id="afterInput" type="file" accept="image/*" capture="environment"></label>
+  <div class="app">
+    <header id="appbar" class="appbar"></header>
+    <main id="view" class="view">
+      <div class="boot"><img src="./icons/icon.svg" alt="" width="64" height="64"><p>Loading…</p></div>
+    </main>
+    <nav id="tabbar" class="tabbar" hidden aria-label="Main">
+      <a href="#/" data-tab="projects"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg><span>Projects</span></a>
+      <a href="#/clients" data-tab="clients"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Clients</span></a>
+      <a href="#/settings" data-tab="settings"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></svg><span>Settings</span></a>
+    </nav>
   </div>
- </div>
- <div class="panel preview-panel"><div class="preview-title"><div><h2>3. Design</h2><p>Choose a layout and preview the finished post.</p></div></div>
-  <div id="templatePicker" class="template-picker"><button data-template="split" class="active">Before & After</button><button data-template="spotlight">Spotlight</button><button data-template="portrait">Portrait</button><button data-template="story">Story</button></div>
-  <div class="canvas-wrap"><canvas id="designCanvas" width="1080" height="1080"></canvas></div>
-  <div class="actions"><button id="downloadBtn" class="secondary">↓ Export JPG</button><button id="shareBtn" class="primary">↗ Share</button></div>
- </div></div>
-</section>
-<section id="brandView" class="view hidden"><button class="back" data-home>← Projects</button><div class="editor-head"><div><p class="eyebrow">SET IT ONCE</p><h1>Brand Kit</h1></div><button id="saveBrandBtn" class="primary">Save Brand Kit</button></div>
- <div class="brand-layout"><div class="panel"><label>Company name<input id="companyName" placeholder="Acme Renovations"></label><label>Tagline<input id="tagline" placeholder="Built right. Built to last."></label>
- <div class="two"><label>Phone<input id="phone" placeholder="(555) 555-1234"></label><label>Website<input id="website" placeholder="acmerenovations.com"></label></div>
- <div class="two"><label>Primary color<input id="primaryColor" type="color" value="#0b3a67"></label><label>Accent color<input id="accentColor" type="color" value="#f4c430"></label></div>
- <label class="logo-upload">Business logo<input id="logoInput" type="file" accept="image/*"><div id="logoBox">＋ Upload logo</div></label></div>
- <div class="panel brand-demo"><p class="eyebrow">PREVIEW</p><div id="brandCard"><div id="brandLogoPreview" class="demo-logo">PS</div><h2 id="brandNamePreview">YOUR COMPANY</h2><p id="brandTagPreview">Quality work. Beautiful results.</p></div></div></div>
-</section>
-</main><div id="toast"></div><script>
-(function(){
-  function show(id){document.querySelectorAll('.view').forEach(function(v){v.classList.add('hidden')});var el=document.querySelector(id);if(el)el.classList.remove('hidden');window.scrollTo(0,0)}
-  document.addEventListener('DOMContentLoaded',function(){
-    var n=document.getElementById('newProjectBtn'),b=document.getElementById('brandBtn');
-    if(n)n.addEventListener('click',function(){show('#editorView')});
-    if(b)b.addEventListener('click',function(){show('#brandView')});
-    document.querySelectorAll('[data-home]').forEach(function(x){x.addEventListener('click',function(){show('#homeView')})});
-  });
-  if('serviceWorker' in navigator){navigator.serviceWorker.getRegistrations().then(function(rs){rs.forEach(function(r){r.unregister()})})}
-})();
-</script>
-
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-  var byId=function(id){return document.getElementById(id)};
-  var toast=function(msg){var t=byId('toast');if(!t)return;t.textContent=msg;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},2200)};
-  var read=function(key,fallback){try{var v=localStorage.getItem(key);return v?JSON.parse(v):fallback}catch(e){return fallback}};
-  var write=function(key,value){try{localStorage.setItem(key,JSON.stringify(value));return true}catch(e){toast('Browser storage is unavailable.');return false}};
-  var photoData={before:null,after:null};
-  var esc=function(s){var d=document.createElement('div');d.textContent=s||'';return d.innerHTML};
-  var renderProjects=function(){
-    var ps=read('ps-projects',[]),grid=byId('projectGrid'),empty=byId('emptyState');grid.innerHTML='';empty.classList.toggle('hidden',ps.length>0);
-    ps.sort(function(a,b){return b.updated-a.updated}).forEach(function(p){
-      var card=document.createElement('article');card.className='project-card';
-      card.innerHTML=(p.after||p.before?'<img src="'+(p.after||p.before)+'">':'<div style="height:190px;background:#d9e2ec"></div>')+'<div class="body"><h3>'+esc(p.title||'Untitled Project')+'</h3><p>'+esc(p.category||'Project')+' · '+new Date(p.updated).toLocaleDateString()+'</p></div>';
-      card.addEventListener('click',function(){byId('editorView').setAttribute('data-project-id',p.id);byId('projectTitle').value=p.title||'';byId('projectDescription').value=p.description||'';byId('projectCategory').value=p.category||'';byId('projectLocation').value=p.location||'';photoData.before=p.before||null;photoData.after=p.after||null;['before','after'].forEach(function(w){if(photoData[w]){byId(w+'Preview').src=photoData[w];byId(w+'Preview').classList.remove('hidden');byId(w+'Prompt').classList.add('hidden')}});document.querySelectorAll('.view').forEach(function(v){v.classList.add('hidden')});byId('editorView').classList.remove('hidden');drawDesign()});grid.appendChild(card)
-    })
-  };
-  var readPhoto=function(file,cb){var r=new FileReader();r.onload=function(){cb(r.result)};r.readAsDataURL(file)};
-  var cover=function(ctx,img,x,y,w,h,done){if(!img){ctx.fillStyle='#d9e2ec';ctx.fillRect(x,y,w,h);done();return}var im=new Image();im.onload=function(){var r=Math.max(w/im.width,h/im.height),nw=im.width*r,nh=im.height*r;ctx.drawImage(im,x+(w-nw)/2,y+(h-nh)/2,nw,nh);done()};im.onerror=done;im.src=img};
-  var wrap=function(ctx,text,x,y,max,size,color,bold){ctx.fillStyle=color;ctx.font=(bold?'800 ':'400 ')+size+'px Arial';var words=(text||'').split(/\\s+/),line='',lines=[];words.forEach(function(w){var t=line?line+' '+w:w;if(ctx.measureText(t).width>max&&line){lines.push(line);line=w}else line=t});if(line)lines.push(line);lines.slice(0,5).forEach(function(l,i){ctx.fillText(l,x,y+i*size*1.18)})};
-  var drawDesign=function(){
-    var canvas=byId('designCanvas'),active=document.querySelector('#templatePicker button.active'),mode=active?active.getAttribute('data-template'):'split',portrait=mode==='portrait',story=mode==='story';
-    canvas.width=1080;canvas.height=story?1920:(portrait?1350:1080);var ctx=canvas.getContext('2d'),primary=byId('primaryColor').value||'#0b3a67',accent=byId('accentColor').value||'#f4c430',title=byId('projectTitle').value||'YOUR PROJECT TITLE',desc=byId('projectDescription').value||'Add a short description of the work completed.';
-    ctx.fillStyle=primary;ctx.fillRect(0,0,canvas.width,canvas.height);
-    function finish(){
-      if(mode==='split'){ctx.fillStyle=accent;ctx.fillRect(0,680,1080,14);wrap(ctx,title.toUpperCase(),55,780,970,54,'#fff',true);wrap(ctx,desc,55,850,900,29,'#e8eef3',false)}
-      else if(mode==='spotlight'){ctx.fillStyle=primary;ctx.fillRect(0,0,1080,150);wrap(ctx,(byId('companyName').value||'YOUR COMPANY').toUpperCase(),55,90,600,42,'#fff',true);wrap(ctx,'PROJECT SPOTLIGHT',650,90,380,35,accent,true);ctx.fillStyle=primary;ctx.fillRect(0,800,1080,280);wrap(ctx,title.toUpperCase(),55,880,970,50,'#fff',true);wrap(ctx,desc,55,945,930,27,'#e8eef3',false)}
-      else {var h=story?1120:760;ctx.fillStyle=primary;ctx.fillRect(0,h,1080,canvas.height-h);wrap(ctx,'PROJECT SPOTLIGHT',55,h+70,900,26,accent,true);wrap(ctx,title.toUpperCase(),55,h+150,970,story?64:56,'#fff',true);wrap(ctx,desc,55,h+235,930,story?35:29,'#e8eef3',false)}
-    }
-    if(mode==='split'){cover(ctx,photoData.before,0,0,540,680,function(){cover(ctx,photoData.after,540,0,540,680,finish)})}
-    else {var h=mode==='story'?1120:(mode==='portrait'?760:650),y=mode==='spotlight'?150:0;cover(ctx,photoData.after||photoData.before,0,y,1080,h,function(){finish()})}
-  };
-  var updateBrand=function(){
-    var primary=byId('primaryColor').value, accent=byId('accentColor').value;
-    byId('brandCard').style.backgroundColor=primary;
-    byId('brandLogoPreview').style.backgroundColor=accent;
-    byId('brandNamePreview').textContent=byId('companyName').value||'YOUR COMPANY';
-    byId('brandTagPreview').textContent=byId('tagline').value||'Quality work. Beautiful results.';
-  };
-  var loadBrand=function(){
-    var b=read('ps-brand',{});
-    ['companyName','tagline','phone','website','primaryColor','accentColor'].forEach(function(k){if(b[k])byId(k).value=b[k]});
-    updateBrand();
-  };
-  ['companyName','tagline','phone','website','primaryColor','accentColor'].forEach(function(k){
-    var el=byId(k); if(el){el.addEventListener('input',updateBrand);el.addEventListener('change',updateBrand)}
-  });
-  byId('brandBtn').addEventListener('click',loadBrand);
-  byId('saveBrandBtn').addEventListener('click',function(){
-    var b={};['companyName','tagline','phone','website','primaryColor','accentColor'].forEach(function(k){b[k]=byId(k).value});
-    if(write('ps-brand',b))toast('Brand Kit saved.');
-  });
-  byId('saveProjectBtn').addEventListener('click',function(){
-    var title=byId('projectTitle').value.trim();if(!title){toast('Add a project title first.');return}
-    var ps=read('ps-projects',[]), id=byId('editorView').getAttribute('data-project-id')||String(Date.now());
-    var p={id:id,title:title,description:byId('projectDescription').value.trim(),category:byId('projectCategory').value.trim(),location:byId('projectLocation').value.trim(),before:photoData.before,after:photoData.after,updated:Date.now()};
-    var found=false;for(var i=0;i<ps.length;i++){if(ps[i].id===id){ps[i]=p;found=true;break}}if(!found)ps.push(p);
-    if(write('ps-projects',ps)){byId('editorView').setAttribute('data-project-id',id);byId('editorHeading').textContent=title;renderProjects();toast('Project saved.')}
-  });
-  byId('newProjectBtn').addEventListener('click',function(){byId('editorView').removeAttribute('data-project-id');photoData.before=null;photoData.after=null;['projectTitle','projectDescription','projectCategory','projectLocation'].forEach(function(k){byId(k).value=''});drawDesign()});
-  ['beforeInput','afterInput'].forEach(function(id){
-    byId(id).addEventListener('change',function(e){var f=e.target.files&&e.target.files[0];if(!f)return;var which=id==='beforeInput'?'before':'after';readPhoto(f,function(data){photoData[which]=data;var img=byId(which+'Preview');img.src=data;img.classList.remove('hidden');byId(which+'Prompt').classList.add('hidden');drawDesign()})})
-  });
-  byId('logoInput').addEventListener('change',function(e){var f=e.target.files&&e.target.files[0];if(!f)return;var box=byId('brandLogoPreview');box.innerHTML='';var img=document.createElement('img');img.src=URL.createObjectURL(f);box.appendChild(img);byId('logoBox').textContent=f.name});
-  document.querySelectorAll('#templatePicker button').forEach(function(btn){btn.addEventListener('click',function(){document.querySelectorAll('#templatePicker button').forEach(function(x){x.classList.remove('active')});btn.classList.add('active');drawDesign()})});
-  ['projectTitle','projectDescription','projectCategory','projectLocation'].forEach(function(k){byId(k).addEventListener('input',drawDesign)});
-  loadBrand();renderProjects();drawDesign();
-});
-</script>
-</body></html>
+  <div id="toast" role="status" aria-live="polite"></div>
+  <noscript><p style="padding:24px">Project Spotlight needs JavaScript enabled.</p></noscript>
+  <script>
+    // Show a readable message instead of a blank screen if the app fails to start.
+    window.addEventListener('error', function (e) {
+      if (document.documentElement.classList.contains('ready')) return;
+      var v = document.getElementById('view');
+      if (v) v.innerHTML = '<div class="boot"><p><b>Project Spotlight could not start.</b><br>' + (e.message || 'Unknown error') + '</p><p>Try reloading. This app needs a current version of Safari, Chrome, Edge or Firefox.</p></div>';
+    });
+  </script>
+  <script type="module" src="./js/app.js"></script>
+</body>
+</html>

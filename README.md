@@ -1,38 +1,63 @@
 # Project Spotlight
 
-A lightweight, local-first PWA for contractors and small renovation businesses to turn before/after project photos into branded social graphics.
+A mobile-first, installable web app (PWA) for contractors — electricians, plumbers, HVAC, roofers,
+remodelers — to turn finished jobs into branded before & after social posts in about a minute.
 
-## Prototype features
+## Features
 
-- Installable PWA shell with offline app caching
-- Project dashboard and project history
-- Capture/select before and after photos on mobile
-- Project title, description, category and location
-- Persistent Brand Kit (logo, company details, colors, tagline)
-- Four canvas-rendered layouts: Before & After, Project Spotlight, Portrait, Story
-- High-resolution JPEG export
-- Native Web Share when file sharing is supported, with download fallback
-- IndexedDB local storage for projects and photos
-- GitHub Pages deployment workflow
+- **Mobile-first UI** — bottom tab bar, sticky live preview, big tap targets, safe-area aware, works
+  offline once installed, light and dark mode. Scales up to a two-column layout on desktop.
+- **Multiple clients / brand kits** — each with its own trade, logo, colors, headline font, phone,
+  website, license #, years in business, star rating, service area, trust badges and hashtags.
+- **Trade presets** — 13 trades with suggested colors, icons, categories, badges and hashtags.
+- **7 templates** — Before & After, Diagonal, Spotlight, Showcase, Review, Offer and a 4-slide Carousel.
+- **4 output sizes** — Square (1:1), Portrait (4:5), Story (9:16) and Landscape (1.91:1 for Facebook /
+  Google Business). Every template adapts to every size.
+- **Text that fits** — headlines and descriptions shrink to fit and truncate cleanly instead of overflowing.
+- **Photo positioning** — drag a photo on the preview to reposition it, pinch (or scroll) to zoom.
+- **Logo, trust badges, contact line and optional QR code** on the graphics.
+- **Share sheet export** (multiple images for carousels), a generated caption with hashtags that is
+  copied automatically, and JPG download.
+- **Local storage in IndexedDB** — photos are downscaled on upload (max 2160px) so storage stays small.
+  Data from earlier versions of the app is imported automatically.
+- **Backup / restore** of everything to a single JSON file (Settings).
 
 ## Run locally
 
-Serve the repository over localhost (service workers do not work from a plain `file://` URL):
+Serve the folder over HTTP (service workers and ES modules don't work from `file://`):
 
 ```bash
 python3 -m http.server 8080
 ```
 
-Then open `http://localhost:8080`.
+Then open `http://localhost:8080`. There is no build step.
 
-## Data
+## Code layout
 
-This prototype stores project records and image blobs locally in IndexedDB. The data layer is intentionally isolated so a later phase can add Google Apps Script + Google Sheets + Google Drive synchronization without changing the core editing workflow.
+| Path | Purpose |
+| --- | --- |
+| `index.html`, `css/app.css` | App shell and styles |
+| `js/app.js` | Hash router and start-up |
+| `js/views/*.js` | Projects, project editor, clients/brand editor, settings |
+| `js/render.js` | Canvas rendering engine and templates |
+| `js/presets.js` | Trades, badges, fonts, sizes and record defaults |
+| `js/db.js`, `js/store.js` | IndexedDB storage and in-memory cache |
+| `js/images.js` | Photo downscaling and decoded image cache |
+| `js/migrate.js` | One-time import from the previous version |
+| `sw.js` | Offline cache (network-first for app code, cache-first for fonts/icons) |
+| `fonts/`, `vendor/`, `js/icons-data.js` | Self-hosted fonts, QR code library (MIT), Lucide icons (ISC) |
+
+## Data model
+
+Projects and clients are plain records; photos and logos are stored as separate blobs referenced by
+ID. This keeps records small so they can later be mirrored to a Google Sheet, with blobs in Google Drive.
 
 ## GitHub Pages
 
-The included workflow publishes the static PWA through GitHub Pages. In repository settings, set **Pages → Build and deployment → Source** to **GitHub Actions** if it is not already enabled.
+The included workflow publishes the app through GitHub Pages. In repository settings, set
+**Pages → Build and deployment → Source** to **GitHub Actions** if it is not already enabled.
 
 ## Next phase
 
-Google synchronization, multi-device project history, additional templates, richer crop/position controls, and optional copy-assistance can be layered onto this prototype.
+Google Sheets + Drive sync (via a Google Apps Script web app), AI-written descriptions and captions,
+and location from photo EXIF data or phone GPS.
