@@ -5,6 +5,7 @@ import { migrateLegacy } from './migrate.js';
 import { state, loadAll, saveClient } from './store.js';
 import { newProject, newClient } from './presets.js';
 import { registerServiceWorker } from './pwa.js';
+import { startAutoSync } from './sync.js';
 import { homeView } from './views/home.js';
 import { editorView } from './views/editor.js';
 import { clientsView, clientView } from './views/client.js';
@@ -64,6 +65,11 @@ async function newProjectRoute(root, query) {
 }
 
 window.addEventListener('hashchange', route);
+// Another device changed something: refresh list screens (the editor keeps what you're typing).
+window.addEventListener('ps:remote-change', () => {
+  const path = (location.hash.slice(1) || '/').split('?')[0];
+  if (/^\/?$|^\/clients$|^\/settings$/.test(path)) route();
+});
 window.addEventListener('unhandledrejection', (e) => { console.error(e.reason); toast('Error: ' + (e.reason?.message || e.reason)); });
 
 (async () => {
@@ -73,5 +79,6 @@ window.addEventListener('unhandledrejection', (e) => { console.error(e.reason); 
   } catch (e) { console.error('Migration failed', e); }
   route();
   registerServiceWorker();
+  startAutoSync().catch(console.error);
   document.documentElement.classList.add('ready');
 })();

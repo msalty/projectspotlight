@@ -1,5 +1,5 @@
 // Service worker registration and the install prompt (Android/desktop Chrome).
-export const VERSION = '5.0.0';
+export const VERSION = '5.1.0';
 
 let deferred = null;
 window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferred = e; });

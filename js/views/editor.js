@@ -6,6 +6,7 @@ import { SIZES, FONT_STYLES, HEADLINE_TAGS, tradeById } from '../presets.js';
 import { prepareImage, imageFor } from '../images.js';
 import { db, collectGarbage } from '../db.js';
 import { buildCaption } from '../caption.js';
+import { getConfig, isConnected, saveGraphicsToDrive } from '../sync.js';
 
 let lastTab = 'photos';
 const touchUI = matchMedia('(pointer: coarse)').matches;
@@ -112,6 +113,10 @@ export async function editorView(root, id) {
       </section>
 
       <section class="pane" data-pane="share">
+        <div class="card drive-card" id="driveCard" hidden>
+          ${icon('folder-open')}<div><b>Save to Google Drive</b><small>Keeps a copy of the finished graphic in your Graphics folder.</small></div>
+          <button class="btn tonal sm" id="driveBtn">${icon('upload')}Save</button>
+        </div>
         <div class="field"><span>Caption <small>copied automatically when you share</small></span>
           <textarea id="fCaption" rows="9"></textarea>
           <div class="row gap">
@@ -474,6 +479,16 @@ export async function editorView(root, id) {
     await download(files || null);
     toast('Image saved');
   }
+  getConfig().then((c) => { $('#driveCard', root).hidden = !isConnected(c); });
+  $('#driveBtn', root).onclick = async (e) => {
+    const btn = e.currentTarget;
+    btn.disabled = true;
+    try {
+      const files = shareCache.key === cacheKey() ? shareCache.files : await buildFiles();
+      const folderUrl = await saveGraphicsToDrive(files);
+      toast(files.length > 1 ? `Saved ${files.length} images to Google Drive` : 'Saved to Google Drive', folderUrl ? { label: 'Open', onClick: () => window.open(folderUrl, '_blank', 'noopener') } : null);
+    } catch (err) { toast(err.message); } finally { btn.disabled = false; }
+  };
   $('#shareBtn', root).onclick = () => share().catch((e) => toast(e.message));
   $('#saveBtn', root).onclick = () => saveImages().catch((e) => toast(e.message));
 

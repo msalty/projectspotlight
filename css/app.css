@@ -142,6 +142,11 @@ h1, h2, h3 { margin: 0; line-height: 1.15; }
 .fab .i { width: 24px; height: 24px; }
 .fab:active { transform: scale(.96); }
 
+.sync-btn[data-state=syncing] .i { animation: spin 1s linear infinite; }
+.sync-btn[data-state=error] { color: var(--danger); }
+.sync-btn[data-state=offline] { color: var(--muted); }
+@keyframes spin { to { transform: rotate(360deg); } }
+
 /* ---------------------------------------------------------------- chips */
 .chip-row { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; margin: 0 -16px 14px; padding: 2px 16px; }
 .chip-row::-webkit-scrollbar { display: none; }
@@ -312,6 +317,11 @@ body.typing .stage-hint { display: none; }
 .action-bar .btn { min-height: 50px; }
 body.typing .action-bar { display: none; }
 
+.drive-card { display: flex; align-items: center; gap: 12px; padding: 14px 16px; margin-bottom: 16px; }
+.drive-card > .i { width: 26px; height: 26px; color: var(--brand); }
+.drive-card > div { flex: 1; display: flex; flex-direction: column; }
+.drive-card small { color: var(--muted); font-size: 13px; }
+
 /* ---------------------------------------------------------------- clients */
 .client-list { display: grid; gap: 10px; }
 .client-card { display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); }
@@ -364,7 +374,13 @@ body.typing .action-bar { display: none; }
 .setting-head > .i { width: 26px; height: 26px; color: var(--brand); margin-top: 2px; }
 .setting-head h3 { font-size: 17px; }
 .setting-head p { margin: 4px 0 0; }
-.howto { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
+.howto { margin: 0 0 16px; padding-left: 20px; display: grid; gap: 4px; }
+.howto a { color: inherit; text-decoration: underline; text-decoration-color: var(--brand); text-underline-offset: 3px; }
+.sync-line { display: flex; align-items: center; gap: 8px; margin: 0 0 14px; padding: 10px 12px; border-radius: 12px; background: var(--surface-2); font-size: 14px; font-weight: 600; }
+.sync-line .i { width: 18px; height: 18px; color: #16a34a; }
+.sync-line[data-state=syncing] .i { color: var(--brand); animation: spin 1s linear infinite; }
+.sync-line[data-state=error] { color: var(--danger); }
+.sync-line[data-state=error] .i, .sync-line[data-state=offline] .i { color: currentColor; }
 
 /* ---------------------------------------------------------------- sheet + toast */
 .sheet-backdrop { position: fixed; inset: 0; z-index: 50; background: rgba(5, 10, 20, 0); transition: background .2s; }

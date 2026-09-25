@@ -2,6 +2,7 @@
 import { db, collectGarbage } from './db.js';
 import { newClient } from './presets.js';
 import { render } from './render.js';
+import { scheduleSync, recordDeletion } from './sync.js';
 
 export const state = { clients: [], projects: [], pendingProject: null };
 
@@ -18,6 +19,7 @@ export async function saveProject(p) {
   await db.put('projects', p);
   const i = state.projects.findIndex((x) => x.id === p.id);
   if (i >= 0) state.projects[i] = p; else state.projects.push(p);
+  scheduleSync();
 }
 
 export async function saveClient(c) {
@@ -25,17 +27,20 @@ export async function saveClient(c) {
   await db.put('clients', c);
   const i = state.clients.findIndex((x) => x.id === c.id);
   if (i >= 0) state.clients[i] = c; else state.clients.push(c);
+  scheduleSync();
 }
 
 export async function deleteProject(id) {
   await db.del('projects', id);
   state.projects = state.projects.filter((p) => p.id !== id);
+  recordDeletion('project', id);
   collectGarbage().catch(console.error);
 }
 
 export async function deleteClient(id) {
   await db.del('clients', id);
   state.clients = state.clients.filter((c) => c.id !== id);
+  recordDeletion('client', id);
   collectGarbage().catch(console.error);
 }
 

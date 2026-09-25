@@ -5,10 +5,12 @@ import { render } from '../render.js';
 import { TRADES, tradeById, BADGES, FONT_STYLES, PALETTES, newClient, newProject } from '../presets.js';
 import { prepareImage, imageFor } from '../images.js';
 import { db } from '../db.js';
+import { mountSyncButton } from './syncbutton.js';
 
 export async function clientsView(root) {
   await loadAll();
   chrome({ title: 'Clients', large: true, tab: 'clients' });
+  mountSyncButton();
   const count = (c) => state.projects.filter((p) => p.clientId === c.id).length;
   root.innerHTML = `
     <p class="muted lead">Each client has its own logo, colors, contact info and trust badges.</p>

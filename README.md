@@ -20,6 +20,9 @@ remodelers — to turn finished jobs into branded before & after social posts in
   copied automatically, and JPG download.
 - **Local storage in IndexedDB** — photos are downscaled on upload (max 2160px) so storage stays small.
   Data from earlier versions of the app is imported automatically.
+- **Google Sync** — projects and clients in a Google Sheet, photos and logos in Google Drive, so the
+  app works across all your devices. Runs on a free Apps Script in your own Google account; see
+  [google/README.md](google/README.md) for the 5-minute setup. Finished graphics can be saved to Drive too.
 - **Backup / restore** of everything to a single JSON file (Settings).
 
 ## Run locally
@@ -44,13 +47,15 @@ Then open `http://localhost:8080`. There is no build step.
 | `js/db.js`, `js/store.js` | IndexedDB storage and in-memory cache |
 | `js/images.js` | Photo downscaling and decoded image cache |
 | `js/migrate.js` | One-time import from the previous version |
+| `js/sync.js` | Two-way Google Sheets/Drive sync (last write wins, deletions as tombstones) |
+| `google/Code.gs` | Apps Script backend to paste into a Google Sheet |
 | `sw.js` | Offline cache (network-first for app code, cache-first for fonts/icons) |
 | `fonts/`, `vendor/`, `js/icons-data.js` | Self-hosted fonts, QR code library (MIT), Lucide icons (ISC) |
 
 ## Data model
 
 Projects and clients are plain records; photos and logos are stored as separate blobs referenced by
-ID. This keeps records small so they can later be mirrored to a Google Sheet, with blobs in Google Drive.
+ID. Sync mirrors records to rows in the Google Sheet and blobs to files in Google Drive.
 
 ## GitHub Pages
 
@@ -59,5 +64,5 @@ The included workflow publishes the app through GitHub Pages. In repository sett
 
 ## Next phase
 
-Google Sheets + Drive sync (via a Google Apps Script web app), AI-written descriptions and captions,
-and location from photo EXIF data or phone GPS.
+AI-written descriptions and captions (through the same Apps Script, keeping the API key private) and
+location from photo EXIF data or phone GPS.

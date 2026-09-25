@@ -2,12 +2,14 @@ import { $, $$, esc, chrome, sheet, confirmSheet, toast } from '../ui.js';
 import { icon } from '../icons.js';
 import { state, loadAll, clientFor, thumbFor, saveProject, deleteProject } from '../store.js';
 import { SIZES } from '../presets.js';
+import { mountSyncButton } from './syncbutton.js';
 
 let filter = 'all';
 
 export async function homeView(root) {
   await loadAll();
   chrome({ title: 'Projects', large: true, tab: 'projects' });
+  mountSyncButton();
   if (filter !== 'all' && !state.clients.some((c) => c.id === filter)) filter = 'all';
   const projects = state.projects
     .filter((p) => filter === 'all' || p.clientId === filter)
