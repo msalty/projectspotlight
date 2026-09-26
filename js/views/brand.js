@@ -260,10 +260,20 @@ export async function brandView(root, id, query, opts = {}) {
     const multiple = state.clients.length > 1;
     const v = await sheet({ title: c.name || 'Brand', actions: [
       { label: 'New project with this brand', icon: 'plus', value: 'new' },
-      { label: 'Add another brand', icon: 'briefcase', value: 'add' },
+      { label: 'Duplicate this brand', icon: 'copy', value: 'dup' },
+      { label: 'Add a blank brand', icon: 'briefcase', value: 'add' },
       ...(multiple || !persisted ? [{ label: 'Delete this brand', icon: 'trash-2', danger: true, value: 'del' }] : []),
     ] });
     if (v === 'new') { await save(); location.hash = '#/new?client=' + c.id; }
+    if (v === 'dup') {
+      // Copy everything (logo, contact info, badges…) so only the differences need editing.
+      // The logo image is shared by id; cleanup only removes images no brand uses.
+      if (saveTimer || !persisted) await save();
+      const copy = { ...structuredClone(c), id: crypto.randomUUID(), name: `${c.name || 'Brand'} (copy)` };
+      await saveClient(copy);
+      toast('Brand duplicated — now editing the copy');
+      location.hash = '#/c/' + copy.id;
+    }
     if (v === 'add') { if (saveTimer || !persisted) await save(); location.hash = '#/c/new'; }
     if (v === 'del') {
       if (used) return toast(`Move or delete its ${used} project${used === 1 ? '' : 's'} first.`);
