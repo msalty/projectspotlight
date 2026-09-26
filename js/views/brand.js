@@ -39,10 +39,9 @@ export async function brandsView(root) {
   }
 }
 
-const DEMO = {
-  title: 'Kitchen Remodel', category: 'Kitchen', location: 'West Chester, PA',
-  description: 'Full gut renovation with custom cabinets, quartz counters and new lighting.',
-};
+// Example job for the preview and font samples, matched to the brand's trade.
+const demoFor = (trade) => ({ ...tradeById(trade).sample, location: 'West Chester, PA' });
+const fontSample = (f, trade) => (f.upper ? tradeById(trade).sample.title.toUpperCase() : tradeById(trade).sample.title);
 
 const sizeSeg = (name, value) => `<div class="mini-seg size-pick" data-size-for="${name}">
   ${Object.entries(ELEMENT_SIZES).map(([k, s]) => `<button data-v="${k}" class="${value === k ? 'on' : ''}" aria-label="${s.name}">${s.label}</button>`).join('')}
@@ -67,7 +66,7 @@ export async function brandView(root, id, query, opts = {}) {
   if (opts.tab) mountSyncButton();
 
   const sample = state.projects.filter((p) => p.clientId === c.id).sort((a, b) => b.updated - a.updated)[0];
-  const previewProject = sample ? structuredClone(sample) : newProject({ ...DEMO, template: 'split' });
+  const previewProject = sample ? structuredClone(sample) : newProject({ ...demoFor(c.trade), template: 'split' });
   previewProject.logoSize = ''; previewProject.qrSize = '';
   const previewShow = () => { previewProject.show = { logo: true, badges: true, contact: true, qr: !!(c.website || c.bookingUrl) }; };
   previewShow();
@@ -134,7 +133,7 @@ export async function brandView(root, id, query, opts = {}) {
 
         <h3 class="pane-h">Headline font</h3>
         <div class="font-grid">
-          ${Object.entries(FONT_STYLES).map(([k, f]) => `<button class="font-card ${c.font === k ? 'on' : ''}" data-font="${k}"><b style="font-family:'${f.family}';font-weight:${f.weight}">${f.upper ? 'KITCHEN REMODEL' : 'Kitchen Remodel'}</b><small>${f.label}</small></button>`).join('')}
+          ${Object.entries(FONT_STYLES).map(([k, f]) => `<button class="font-card ${c.font === k ? 'on' : ''}" data-font="${k}"><b style="font-family:'${f.family}';font-weight:${f.weight}" data-font-sample="${k}">${esc(fontSample(f, c.trade))}</b><small>${f.label}</small></button>`).join('')}
         </div>
 
         <h3 class="pane-h">Trust badges</h3>
@@ -191,6 +190,9 @@ export async function brandView(root, id, query, opts = {}) {
     c.trade = t.id;
     if (!c.hashtags || c.hashtags === prev.hashtags) { c.hashtags = t.hashtags; $('[data-k="hashtags"]', root).value = c.hashtags; }
     if (!c.badges.length) { c.badges = t.badges.slice(0, 2); renderBadges(); }
+    // Font samples and (if there's no real project yet) the preview show a job from this trade.
+    $$('[data-font-sample]', root).forEach((el) => { el.textContent = fontSample(FONT_STYLES[el.dataset.fontSample], t.id); });
+    if (!sample) Object.assign(previewProject, demoFor(t.id));
     changed();
   };
 

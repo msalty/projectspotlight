@@ -386,7 +386,7 @@ body.typing .action-bar { display: none; }
 
 .font-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .font-card { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 12px; border-radius: 12px; border: 2px solid var(--line); background: var(--surface); text-align: left; }
-.font-card b { font-size: 20px; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.font-card b { font-size: 19px; line-height: 1.1; max-width: 100%; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; min-height: 2.2em; }
 .font-card small { color: var(--muted); font-size: 12px; }
 .font-card.on { border-color: var(--brand); }
 
