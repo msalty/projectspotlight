@@ -374,6 +374,7 @@ body.typing .action-bar { display: none; }
 .font-card small { color: var(--muted); font-size: 12px; }
 .font-card.on { border-color: var(--brand); }
 
+.field-warn { margin: -8px 0 14px; color: var(--danger); font-size: 13px; font-weight: 600; }
 .theme-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-bottom: 12px; }
 .theme-chip { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 6px 10px; border-radius: 12px; border: 2px solid var(--line); background: var(--surface); font-size: 13px; font-weight: 700; text-align: left; line-height: 1.2; }
 .theme-chip.on { border-color: var(--brand); background: color-mix(in srgb, var(--brand) 10%, var(--surface)); }

@@ -6,9 +6,12 @@ import { scheduleSync, recordDeletion } from './sync.js';
 
 export const state = { clients: [], projects: [], pendingProject: null };
 
+// What a brand is called inside the app: its nickname, else the company name.
+export const brandLabel = (c) => (c && (c.label || c.name)) || 'Untitled brand';
+
 export async function loadAll() {
   [state.clients, state.projects] = await Promise.all([db.all('clients'), db.all('projects')]);
-  state.clients.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+  state.clients.sort((a, b) => brandLabel(a).localeCompare(brandLabel(b)));
   return state;
 }
 

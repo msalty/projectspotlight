@@ -1,6 +1,6 @@
 import { $, $$, esc, chrome, sheet, confirmSheet, toast } from '../ui.js';
 import { icon } from '../icons.js';
-import { state, loadAll, clientFor, thumbFor, saveProject, deleteProject } from '../store.js';
+import { state, loadAll, clientFor, thumbFor, saveProject, deleteProject, brandLabel } from '../store.js';
 import { SIZES } from '../presets.js';
 import { mountSyncButton } from './syncbutton.js';
 
@@ -33,7 +33,7 @@ export async function homeView(root) {
   const chips = state.clients.length > 1 ? `
     <div class="chip-row" role="tablist" aria-label="Filter by brand">
       <button class="chip ${filter === 'all' ? 'on' : ''}" data-filter="all">All</button>
-      ${state.clients.map((c) => `<button class="chip ${filter === c.id ? 'on' : ''}" data-filter="${c.id}"><i class="dot" style="background:${esc(c.accent)}"></i>${esc(c.name || 'Untitled brand')}</button>`).join('')}
+      ${state.clients.map((c) => `<button class="chip ${filter === c.id ? 'on' : ''}" data-filter="${c.id}"><i class="dot" style="background:${esc(c.accent)}"></i>${esc(brandLabel(c))}</button>`).join('')}
     </div>` : '';
 
   root.innerHTML = `
@@ -45,7 +45,7 @@ export async function homeView(root) {
           <a href="#/p/${p.id}" class="card-link">
             <div class="thumb" style="--ar:${s.w}/${s.h}"><img alt="" decoding="async"></div>
             <div class="card-body"><h3>${esc(p.title || 'Untitled project')}</h3>
-            <p>${esc([state.clients.length > 1 ? c.name : p.category, new Date(p.updated).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })].filter(Boolean).join(' · '))}</p></div>
+            <p>${esc([state.clients.length > 1 ? brandLabel(c) : p.category, new Date(p.updated).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })].filter(Boolean).join(' · '))}</p></div>
           </a>
           <button class="icon-btn card-more" aria-label="Project options">${icon('ellipsis-vertical')}</button>
         </article>`;

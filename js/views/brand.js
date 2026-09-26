@@ -3,7 +3,7 @@
 // if they add another (e.g. a second business). Stored as "clients" records for sync.
 import { $, $$, esc, chrome, sheet, confirmSheet, toast, pickFile, debounce } from '../ui.js';
 import { icon } from '../icons.js';
-import { state, loadAll, saveClient, deleteClient, saveProject } from '../store.js';
+import { state, loadAll, saveClient, deleteClient, saveProject, brandLabel } from '../store.js';
 import { render } from '../render.js';
 import { TRADES, tradeById, BADGES, FONT_STYLES, THEMES, ELEMENT_SIZES, themeFor, newClient, newProject } from '../presets.js';
 import { prepareImage, imageFor } from '../images.js';
@@ -27,7 +27,7 @@ export async function brandsView(root) {
       ${state.clients.map((c) => `
         <a class="client-card" href="#/c/${c.id}">
           <span class="client-logo" style="background:${esc(c.primary)};color:${esc(c.accent)}" data-logo="${c.logo || ''}">${icon(tradeById(c.trade).icon)}</span>
-          <span class="client-meta"><b>${esc(c.name || 'Untitled brand')}</b><small>${esc(tradeById(c.trade).label)} · ${count(c)} project${count(c) === 1 ? '' : 's'}</small></span>
+          <span class="client-meta"><b>${esc(brandLabel(c))}</b><small>${esc([c.label && c.name, tradeById(c.trade).label, `${count(c)} project${count(c) === 1 ? '' : 's'}`].filter(Boolean).join(' · '))}</small></span>
           <span class="swatches"><i style="background:${esc(c.primary)}"></i><i style="background:${esc(c.accent)}"></i></span>
           ${icon('chevron-right', 'chev')}
         </a>`).join('')}
@@ -61,7 +61,7 @@ export async function brandView(root, id, query, opts = {}) {
   const back = opts.tab ? null : from ? '#/' + from : forProject ? '#/p/' + forProject : state.clients.length > 1 ? '#/brand' : '#/';
 
   chrome({
-    title: opts.tab ? 'Brand' : (c.name || 'New brand'), back, tab: opts.tab ? 'brand' : null,
+    title: opts.tab ? 'Brand' : (persisted ? brandLabel(c) : 'New brand'), back, tab: opts.tab ? 'brand' : null,
     actions: `<button class="icon-btn" id="moreBtn" aria-label="Brand options">${icon('ellipsis-vertical')}</button>`,
   });
   if (opts.tab) mountSyncButton();
@@ -83,6 +83,12 @@ export async function brandView(root, id, query, opts = {}) {
     </section>
     <div class="editor-panel">
       <section class="pane">
+        <div ${state.clients.length > 1 || c.label || (!persisted && state.clients.length) ? '' : 'hidden'}>
+          <h3 class="pane-h">Brand nickname</h3>
+          <label class="field"><span>Only shown in the app, to tell your brands apart</span>
+            <input data-k="label" value="${esc(c.label)}" placeholder="${esc(c.name || 'e.g. Summer look')}" autocomplete="off"></label>
+          <p class="field-warn" id="labelWarn" hidden>Another brand already uses this name.</p>
+        </div>
         <h3 class="pane-h">Business</h3>
         ${field('name', 'Company name', 'autocomplete="organization" placeholder="Acme Electric"')}
         <label class="field"><span>Trade <small>suggests job types, badges and hashtags</small></span>
@@ -172,7 +178,9 @@ export async function brandView(root, id, query, opts = {}) {
   $$('[data-k]', root).forEach((el) => el.addEventListener('input', () => {
     c[el.dataset.k] = el.value.trim();
     if (el.type === 'color') { $(`[data-hex="${el.dataset.k}"]`, root).textContent = el.value; }
-    if (el.dataset.k === 'name' && !opts.tab) $('#appbar h1').textContent = c.name || 'New brand';
+    if ((el.dataset.k === 'name' || el.dataset.k === 'label') && !opts.tab) $('#appbar h1').textContent = brandLabel(c);
+    if (el.dataset.k === 'name') $('[data-k="label"]', root).placeholder = c.name || 'e.g. Summer look';
+    if (el.dataset.k === 'label' || el.dataset.k === 'name') checkLabel();
     if (el.dataset.k === 'website' || el.dataset.k === 'bookingUrl') previewShow();
     changed();
   }));
@@ -258,7 +266,7 @@ export async function brandView(root, id, query, opts = {}) {
   $('#moreBtn').onclick = async () => {
     const used = state.projects.filter((p) => p.clientId === c.id).length;
     const multiple = state.clients.length > 1;
-    const v = await sheet({ title: c.name || 'Brand', actions: [
+    const v = await sheet({ title: brandLabel(c), actions: [
       { label: 'New project with this brand', icon: 'plus', value: 'new' },
       { label: 'Duplicate this brand', icon: 'copy', value: 'dup' },
       { label: 'Add a blank brand', icon: 'briefcase', value: 'add' },
@@ -269,7 +277,8 @@ export async function brandView(root, id, query, opts = {}) {
       // Copy everything (logo, contact info, badges…) so only the differences need editing.
       // The logo image is shared by id; cleanup only removes images no brand uses.
       if (saveTimer || !persisted) await save();
-      const copy = { ...structuredClone(c), id: crypto.randomUUID(), name: `${c.name || 'Brand'} (copy)` };
+      // Same company name on the graphics; only the in-app nickname changes.
+      const copy = { ...structuredClone(c), id: crypto.randomUUID(), label: uniqueLabel(`${brandLabel(c).replace(/ \(copy( \d+)?\)$/, '')} (copy)`) };
       await saveClient(copy);
       toast('Brand duplicated — now editing the copy');
       location.hash = '#/c/' + copy.id;
@@ -286,6 +295,18 @@ export async function brandView(root, id, query, opts = {}) {
     }
   };
 
+  function checkLabel() {
+    const mine = brandLabel(c).trim().toLowerCase();
+    $('#labelWarn', root).hidden = !state.clients.some((x) => x.id !== c.id && brandLabel(x).trim().toLowerCase() === mine);
+  }
+  function uniqueLabel(want) {
+    const taken = new Set(state.clients.map((x) => brandLabel(x).toLowerCase()));
+    let label = want, n = 2;
+    while (taken.has(label.toLowerCase())) label = want.replace(/\)$/, ` ${n++})`);
+    return label;
+  }
+
+  checkLabel();
   syncThemes();
   renderBadges();
   await renderLogo();

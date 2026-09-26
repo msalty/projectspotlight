@@ -1,6 +1,6 @@
 import { $, $$, esc, chrome, sheet, confirmSheet, toast, debounce, pickFile } from '../ui.js';
 import { icon } from '../icons.js';
-import { state, loadAll, clientFor, saveProject, deleteProject } from '../store.js';
+import { state, loadAll, clientFor, saveProject, deleteProject, brandLabel } from '../store.js';
 import { render, renderBlob, TEMPLATES, templateById, pageCount } from '../render.js';
 import { SIZES, FONT_STYLES, HEADLINE_TAGS, ELEMENT_SIZES, tradeById } from '../presets.js';
 import { prepareImage, imageFor, aiImageData } from '../images.js';
@@ -83,7 +83,7 @@ export async function editorView(root, id) {
         </div>
         <label class="field" ${state.clients.length > 1 ? '' : 'hidden'}><span>Brand</span>
           <div class="row gap">
-            <select id="fClient">${state.clients.map((c) => `<option value="${c.id}">${esc(c.name || 'Untitled brand')}</option>`).join('')}<option value="__new">+ Add another brand…</option></select>
+            <select id="fClient">${state.clients.map((c) => `<option value="${c.id}">${esc(brandLabel(c))}</option>`).join('')}<option value="__new">+ Add another brand…</option></select>
             <a class="btn tonal sm" id="editClient" href="#/c/${client.id}?from=p/${p.id}">${icon('palette')}Edit</a>
           </div>
         </label>
