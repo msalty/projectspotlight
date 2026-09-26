@@ -1,7 +1,7 @@
 import { $, $$, esc, chrome, sheet, confirmSheet, toast, debounce, pickFile } from '../ui.js';
 import { icon } from '../icons.js';
 import { state, loadAll, clientFor, saveProject, deleteProject, brandLabel } from '../store.js';
-import { render, renderBlob, TEMPLATES, templateById, pageCount } from '../render.js';
+import { render, renderBlob, TEMPLATES, templateById, pageCount, pagesFor } from '../render.js';
 import { SIZES, FONT_STYLES, HEADLINE_TAGS, ELEMENT_SIZES, tradeById } from '../presets.js';
 import { prepareImage, imageFor, aiImageData } from '../images.js';
 import { db, collectGarbage } from '../db.js';
@@ -62,6 +62,15 @@ export async function editorView(root, id) {
         <div class="row gap">
           <button class="btn tonal sm" id="swapBtn">${icon('images')}Swap before / after</button>
         </div>
+        <section class="extras">
+          <h3 class="pane-h">More photos <small id="extrasCount"></small></h3>
+          <p class="muted small">Progress shots and close-ups. Each one becomes its own slide in the Carousel template and a quick cut in videos.</p>
+          <div class="extras-list" id="extrasList"></div>
+          <div class="row gap" id="extrasAdd">
+            ${touchUI ? `<button class="btn tonal sm" data-xadd="camera">${icon('camera')}Camera</button>` : ''}
+            <button class="btn tonal sm" data-xadd="library">${icon('images')}Add photos</button>
+          </div>
+        </section>
         <div class="card adjust" id="adjust">
           <div class="adjust-head"><b>Position</b>
             <div class="mini-seg">${['before', 'after'].map((k) => `<button data-sel="${k}">${k}</button>`).join('')}</div>
@@ -215,9 +224,10 @@ export async function editorView(root, id) {
   const redrawSoon = () => { if (!rafPending) { rafPending = true; frame().then(() => { rafPending = false; redraw(); }); } };
 
   function updatePager() {
-    const tpl = templateById(p.template), n = pageCount(p);
+    const n = pageCount(p);
+    page = Math.min(page, n - 1);
     $('#pager', root).hidden = n < 2;
-    if (n > 1) $('#pageLabel', root).textContent = `${tpl.pages[page]} · ${page + 1}/${n}`;
+    if (n > 1) $('#pageLabel', root).textContent = `${pagesFor(p)[page]} · ${page + 1}/${n}`;
     const s = SIZES[p.size] || SIZES.square;
     $('#canvasBox', root).style.setProperty('--ar', `${s.w}/${s.h}`);
   }
@@ -260,6 +270,8 @@ export async function editorView(root, id) {
     $$('[data-sel]', root).forEach((b) => b.classList.toggle('on', b.dataset.sel === selected));
     $('#zoom', root).value = (p.adjust[selected] || {}).zoom || 1;
     $('#adjust', root).hidden = !p.photos.before && !p.photos.after;
+    // Until both photos are in, a big empty preview just pushes the photo buttons off screen.
+    $('.editor', root).classList.toggle('needs-photos', !p.photos.before || !p.photos.after);
   }
 
   async function addPhoto(k, capture) {
@@ -303,6 +315,95 @@ export async function editorView(root, id) {
     selected = k; renderSlots();
   });
 
+  // ------------------------------------------------------------ extra photos
+  const MAX_EXTRAS = 8;
+  p.extras ||= [];
+  const hasPhoto = (key) => (key.startsWith('x:') ? p.extras.some((x) => 'x:' + x.key === key) : !!p.photos[key]);
+  const carouselPage = (i) => 3 + i;
+
+  async function renderExtras() {
+    $('#extrasCount', root).textContent = p.extras.length ? `${p.extras.length} of ${MAX_EXTRAS}` : '';
+    $('#extrasAdd', root).hidden = p.extras.length >= MAX_EXTRAS;
+    const list = $('#extrasList', root);
+    list.innerHTML = p.extras.map((x, i) => `
+      <div class="extra-row" data-x="${x.key}">
+        <button class="extra-thumb" data-xact="show" aria-label="Show photo ${i + 1} in the preview"><img alt=""></button>
+        <input class="extra-cap" data-xcap="${x.key}" value="${esc(x.caption)}" placeholder="Caption (optional)" enterkeyhint="done" autocomplete="off">
+        <div class="extra-btns">
+          <button class="icon-btn sm" data-xact="up" aria-label="Move up" ${i === 0 ? 'disabled' : ''}>${icon('chevron-down', 'flip')}</button>
+          <button class="icon-btn sm" data-xact="down" aria-label="Move down" ${i === p.extras.length - 1 ? 'disabled' : ''}>${icon('chevron-down')}</button>
+          <button class="icon-btn sm" data-xact="del" aria-label="Remove photo">${icon('trash-2')}</button>
+        </div>
+      </div>`).join('');
+    for (const x of p.extras) {
+      const img = await imageFor(x.id);
+      const el = $(`[data-x="${x.key}"] img`, list);
+      if (img && el) el.src = img.src;
+    }
+  }
+
+  async function addExtras(capture) {
+    const picked = await pickFile({ capture, multiple: !capture });
+    if (!picked) return;
+    const files = (Array.isArray(picked) ? picked : [picked]).slice(0, MAX_EXTRAS - p.extras.length);
+    const add = $('#extrasAdd', root);
+    add.classList.add('busy');
+    let added = 0;
+    try {
+      for (const file of files) {
+        const [blob, meta] = await Promise.all([prepareImage(file), photoMeta(file)]);
+        const x = { key: crypto.randomUUID().slice(0, 8), id: await db.putBlob(blob), caption: '' };
+        p.extras.push(x);
+        p.photoMeta['x:' + x.key] = meta;
+        if (meta.lat != null) locationFromPhoto('new', meta);
+        added++;
+      }
+    } catch (e) { toast(e.message); } finally { add.classList.remove('busy'); }
+    if (!added) return;
+    changed();
+    await renderExtras();
+    if (p.template !== 'carousel') {
+      toast(`${added} photo${added === 1 ? '' : 's'} added — they appear in the Carousel template and videos`, {
+        label: 'Use carousel',
+        onClick: () => { p.template = 'carousel'; page = carouselPage(p.extras.length - added); syncDesign(); changed(); },
+      });
+    } else { page = carouselPage(p.extras.length - added); redraw(); }
+  }
+  $$('[data-xadd]', root).forEach((b) => b.onclick = () => addExtras(b.dataset.xadd === 'camera'));
+
+  $('#extrasList', root).addEventListener('click', (e) => {
+    const act = e.target.closest('[data-xact]')?.dataset.xact;
+    const row = e.target.closest('[data-x]');
+    if (!act || !row) return;
+    const i = p.extras.findIndex((x) => x.key === row.dataset.x);
+    if (i < 0) return;
+    if (act === 'show') {
+      if (p.template !== 'carousel') { toast('Extra photos show up in the Carousel template.', { label: 'Use carousel', onClick: () => { p.template = 'carousel'; page = carouselPage(i); syncDesign(); changed(); } }); return; }
+      page = carouselPage(i); selected = 'x:' + p.extras[i].key; redraw(); window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+    if (act === 'up' && i > 0) [p.extras[i - 1], p.extras[i]] = [p.extras[i], p.extras[i - 1]];
+    if (act === 'down' && i < p.extras.length - 1) [p.extras[i + 1], p.extras[i]] = [p.extras[i], p.extras[i + 1]];
+    if (act === 'del') {
+      const [x] = p.extras.splice(i, 1);
+      delete p.adjust['x:' + x.key];
+      delete p.photoMeta['x:' + x.key];
+      renderLocChips();
+      if (selected === 'x:' + x.key) selected = p.photos.after ? 'after' : 'before';
+    }
+    changed();
+    renderExtras();
+  });
+  $('#extrasList', root).addEventListener('input', (e) => {
+    const key = e.target.dataset.xcap;
+    const x = key && p.extras.find((y) => y.key === key);
+    if (!x) return;
+    x.caption = e.target.value;
+    const i = p.extras.indexOf(x);
+    if (p.template === 'carousel') page = carouselPage(i);
+    changed();
+  });
+
   $('#swapBtn', root).onclick = () => {
     p.photos = { before: p.photos.after, after: p.photos.before };
     p.adjust = { before: p.adjust.after, after: p.adjust.before };
@@ -334,7 +435,7 @@ export async function editorView(root, id) {
     pointers.set(e.pointerId, pt);
     if (pointers.size === 1) {
       const s = hit(pt);
-      if (!s || !p.photos[s.key]) { gesture = null; return; }
+      if (!s || !hasPhoto(s.key)) { gesture = null; return; }
       canvas.setPointerCapture(e.pointerId);
       startPan(pt, s.key);
       if (selected !== s.key) { selected = s.key; renderSlots(); }
@@ -371,7 +472,7 @@ export async function editorView(root, id) {
   canvas.addEventListener('pointercancel', endPointer);
   canvas.addEventListener('wheel', (e) => {
     const s = hit(toCanvas(e));
-    if (!s || !p.photos[s.key]) return;
+    if (!s || !hasPhoto(s.key)) return;
     e.preventDefault();
     const a = adj(s.key);
     a.zoom = clamp(a.zoom * (1 - e.deltaY * 0.0015), 1, 4);
@@ -546,7 +647,8 @@ export async function editorView(root, id) {
       $('#fOfferD', box).oninput = (e) => { p.offer.details = e.target.value; changed(); };
       $('#fOfferC', box).oninput = (e) => { p.offer.cta = e.target.value; changed(); };
     } else if (p.template === 'carousel') {
-      box.innerHTML = `<p class="muted small">Carousel exports 4 slides — cover, before, after and details. Use the arrows on the preview to check each one.</p>`;
+      const n = p.extras.length;
+      box.innerHTML = `<p class="muted small">Carousel exports ${pageCount(p)} slides — cover, before, after, ${n ? `${n} more photo${n === 1 ? '' : 's'}, ` : ''}and details. ${n ? '' : 'Add more photos on the Photos tab to make it longer. '}Use the arrows on the preview to check each one.</p>`;
     } else box.innerHTML = '';
   }
   $$('[data-tpl]', root).forEach((b) => b.onclick = () => { p.template = b.dataset.tpl; page = 0; syncDesign(); changed(); });
@@ -751,6 +853,7 @@ export async function editorView(root, id) {
   // ------------------------------------------------------------ init
   renderCatChips();
   renderLocChips();
+  renderExtras();
   aiAvailability();
   syncDesign();
   showTab(tab);

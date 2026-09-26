@@ -73,7 +73,7 @@ function single(k) {
   const adj = k.adjust[k.imgs.after ? 'after' : 'before'];
   const tag = k.imgs.after ? k.afterTag : k.beforeTag;
   return {
-    duration: 7.5,
+    duration: 7.5, endAt: 4.6,
     draw(ctx, t) {
       cover(ctx, img, k.W, k.H, adj, lerp(1, 1.1, seg(t, 0, 5)));
       const o = outBefore(t, 4.6);
@@ -88,7 +88,7 @@ function single(k) {
 function reveal(k) {
   const { before, after } = k.imgs;
   return {
-    duration: 10.5,
+    duration: 10.5, endAt: 7.8,
     draw(ctx, t) {
       const p = easeInOut(seg(t, 3, 4.3)); // wipe progress
       if (p < 1) cover(ctx, before, k.W, k.H, k.adjust.before, lerp(1, 1.06, seg(t, 0, 4.3)));
@@ -118,7 +118,7 @@ function slider(k) {
     return 0.5;
   };
   return {
-    duration: 11,
+    duration: 11, endAt: 8.3,
     draw(ctx, t) {
       const x = pos(t) * k.W;
       const z = lerp(1, 1.05, seg(t, 0, 8));
@@ -139,7 +139,7 @@ function slider(k) {
 function punch(k) {
   const { before, after } = k.imgs;
   return {
-    duration: 9.5,
+    duration: 9.5, endAt: 5.8, endFade: 0.35,
     draw(ctx, t) {
       const cut = 2.1;
       if (t < cut) {
@@ -159,6 +159,39 @@ function punch(k) {
 }
 
 const PLANS = { reveal, slider, punch };
+
+// Inserts the extra photos as quick cuts (with a flash and punch-in) just before the closing card.
+const PER_EXTRA = 1.3;
+function withExtras(plan, k) {
+  const n = k.extras.length;
+  if (!n) return plan;
+  const E = plan.endAt, span = n * PER_EXTRA;
+  const shot = (ctx, i, lt, overlays = 1) => {
+    const x = k.extras[i];
+    cover(ctx, x.img, k.W, k.H, x.adj, lerp(1.14, 1, easeOut(seg(lt, 0, 0.5))) + 0.03 * seg(lt, 0.5, PER_EXTRA));
+    if (x.cap) layer(ctx, x.cap, seg(lt, 0.15, 0.45) * overlays);
+    layer(ctx, k.brand, overlays);
+  };
+  return {
+    duration: plan.duration + span,
+    endAt: E + span,
+    draw(ctx, t) {
+      if (t < E) return plan.draw(ctx, t);
+      if (t < E + span) {
+        const i = Math.min(n - 1, Math.floor((t - E) / PER_EXTRA));
+        const lt = t - E - i * PER_EXTRA;
+        shot(ctx, i, lt);
+        const flash = 1 - lt / 0.16;
+        if (flash > 0) { ctx.fillStyle = `rgba(255,255,255,${(flash * 0.85).toFixed(3)})`; ctx.fillRect(0, 0, k.W, k.H); }
+        return;
+      }
+      // Closing card over the last extra photo, with the original plan's timing.
+      const tt = t - span;
+      shot(ctx, n - 1, PER_EXTRA, 1 - seg(tt, E, E + 0.25));
+      endCard(ctx, k, tt, E, plan.endFade || 0.6);
+    },
+  };
+}
 
 // ---------------------------------------------------------------- encoding
 
@@ -249,7 +282,7 @@ async function recordRealtime(plan, canvas, ctx, bitrate, onProgress, signal) {
 export async function makeVideo(project, client, { style = 'reveal', size = 'story', onProgress, signal } = {}) {
   const k = await videoKit(project, client, size);
   if (!k.imgs.before && !k.imgs.after) throw new Error('Add a photo first.');
-  const plan = k.imgs.before && k.imgs.after ? (PLANS[style] || reveal)(k) : single(k);
+  const plan = withExtras(k.imgs.before && k.imgs.after ? (PLANS[style] || reveal)(k) : single(k), k);
   const canvas = document.createElement('canvas');
   canvas.width = k.W; canvas.height = k.H;
   const ctx = canvas.getContext('2d');

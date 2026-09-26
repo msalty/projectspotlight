@@ -164,6 +164,7 @@ export function newProject(overrides = {}) {
     size: 'square',
     font: '',            // '' = use the client's font
     photos: { before: null, after: null },
+    extras: [],          // more job photos: [{ key, id, caption }] — carousel slides and video cuts
     adjust: {},          // slot -> { fx, fy, zoom }
     show: { logo: true, badges: true, contact: true, qr: false },
     review: { text: '', name: '' },

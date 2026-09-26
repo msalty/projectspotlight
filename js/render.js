@@ -152,7 +152,7 @@ function photo(T, key, rect, path) {
     ctx.globalAlpha = 0.35;
     drawIcon(T, 'camera', '#ffffff', cx - s / 2, cy - s * 0.75, s);
     ctx.globalAlpha = 0.7;
-    fitText(ctx, `Add ${key} photo`, { x: rect.x + 10, y: cy + s * 0.4, w: rect.w - 20, h: s * 0.5 },
+    fitText(ctx, key.startsWith('x:') ? 'Photo' : `Add ${key} photo`, { x: rect.x + 10, y: cy + s * 0.4, w: rect.w - 20, h: s * 0.5 },
       { font: { ...BODY, weight: '600' }, max: Math.round(s * 0.26), color: '#ffffff', align: 'center', maxLines: 1 });
     ctx.globalAlpha = 1;
   }
@@ -606,6 +606,22 @@ function carousel(T, page) {
     pill(T, 'Swipe', W - pad, pad * 0.8 + 24 * u, { h: 48 * u, bg: T.col.acc, color: T.col.onAcc, icon: 'chevron-right', align: 'right' });
     return;
   }
+  const extras = T.p.extras || [];
+  if (page >= 3 && page < 3 + extras.length) {
+    // Extra job photos: one full-bleed slide each, with its caption and the logo.
+    const x = extras[page - 3];
+    photo(T, 'x:' + x.key, { x: 0, y: 0, w: W, h: H });
+    const g = ctx.createLinearGradient(0, H * 0.6, 0, H);
+    g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,.6)');
+    ctx.fillStyle = g; ctx.fillRect(0, H * 0.6, W, H * 0.4);
+    const lh = (T.wide ? 64 : 88) * u * T.ls;
+    const lw = logo(T, W - pad, H - pad - lh, lh, { align: 'right', maxW: W * 0.4 });
+    if (x.caption) {
+      fitText(ctx, x.caption, { x: pad, y: H - pad - (T.wide ? 140 : 200) * u, w: W - pad * 2 - (lw ? lw + 30 * u : 0), h: (T.wide ? 140 : 200) * u },
+        { font: { family: 'Inter', weight: '800', line: 1.15 }, max: (T.wide ? 40 : 52) * u, min: 26 * u, color: '#ffffff', valign: 'bottom', maxLines: 3, shadow: true });
+    }
+    return;
+  }
   if (page === 1 || page === 2) {
     const key = page === 1 ? 'before' : 'after';
     photo(T, key, { x: 0, y: 0, w: W, h: H });
@@ -637,10 +653,12 @@ export const TEMPLATES = [
   { id: 'showcase', label: 'Showcase', draw: showcase },
   { id: 'review', label: 'Review', draw: review },
   { id: 'offer', label: 'Offer', draw: offer },
-  { id: 'carousel', label: 'Carousel', pages: ['Cover', 'Before', 'After', 'Details'], draw: carousel },
+  { id: 'carousel', label: 'Carousel', pages: (p) => ['Cover', 'Before', 'After', ...(p.extras || []).map((_, i) => `Photo ${i + 1}`), 'Details'], draw: carousel },
 ];
 export const templateById = (id) => TEMPLATES.find((t) => t.id === id) || TEMPLATES[0];
-export const pageCount = (p) => (templateById(p.template).pages || [0]).length;
+// Slide names for a project (single-image templates have one unnamed page).
+export const pagesFor = (p) => { const t = templateById(p.template); return t.pages ? t.pages(p) : ['']; };
+export const pageCount = (p) => pagesFor(p).length;
 
 // ---------------------------------------------------------------- entry points
 const ICON_NAMES = ['camera', 'chevron-right', 'chevron-down', 'star', 'award', 'shield-check', 'badge-check', 'phone', 'globe', 'map-pin'];
@@ -654,15 +672,19 @@ async function prepare(project, client) {
   col.acc2 = contrast > 0.2 ? col.acc : col.onPri;
   col.sub = rgba(col.onPri, 0.8);
   const colors = new Set([col.onPri, col.onAcc, col.acc2, '#ffffff', col.acc]);
-  const [before, after, logoImg, icons] = await Promise.all([
+  const extras = project.extras || [];
+  const [before, after, logoImg, icons, extraImgs] = await Promise.all([
     imageFor(project.photos.before), imageFor(project.photos.after), imageFor(client.logo),
     Promise.all([
       ...ICON_NAMES.flatMap((n) => [...colors].map((c) => iconImage(n, c).then((img) => [`${n}|${c}`, img]))),
       ...[...colors].map((c) => iconImage('star', c, 1.5, c).then((img) => [`star-fill|${c}`, img])),
     ]),
+    Promise.all(extras.map((x) => imageFor(x.id))),
     ensureFonts(),
   ]);
-  return { col, imgs: { before, after, logo: logoImg }, icons: new Map(icons) };
+  const imgs = { before, after, logo: logoImg, extras: extraImgs };
+  extras.forEach((x, i) => { imgs['x:' + x.key] = extraImgs[i]; });
+  return { col, imgs, icons: new Map(icons) };
 }
 
 // Renders a project onto a canvas. Returns photo slots (canvas coordinates) for drag/zoom editing.
@@ -686,7 +708,7 @@ function drawTemplate(T, page) {
   T.ctx.save();
   T.ctx.clearRect(0, 0, T.W, T.H);
   const tpl = templateById(T.p.template);
-  tpl.draw(T, Math.min(page, (tpl.pages || [0]).length - 1));
+  tpl.draw(T, Math.min(page, pageCount(T.p) - 1));
   T.ctx.restore();
 }
 
@@ -713,10 +735,23 @@ export async function videoKit(project, client, sizeKey = 'story') {
   const probe = makeT(document.createElement('canvas'), project, client, assets, size);
   const { W, H, u } = probe;
   const pad = 64 * u, tagH = 70 * u;
-  const tpl = templateById(project.template);
-  const endPage = tpl.pages ? tpl.pages.length - 1 : 0; // carousel: the details slide
+  const endPage = pageCount(project) - 1; // carousel: the details slide
+  // Extra photos become quick cuts in the video (up to 6), each with its caption as an overlay.
+  const extras = (project.extras || []).filter((x) => assets.imgs['x:' + x.key]).slice(0, 6).map((x) => ({
+    img: assets.imgs['x:' + x.key],
+    adj: (project.adjust || {})['x:' + x.key] || {},
+    cap: x.caption ? make((T) => {
+      const { ctx } = T;
+      const g = ctx.createLinearGradient(0, H * 0.62, 0, H);
+      g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,.65)');
+      ctx.fillStyle = g; ctx.fillRect(0, H * 0.62, W, H * 0.38);
+      fitText(ctx, x.caption, { x: pad, y: H - pad * 1.6 - 220 * u, w: W - pad * 2, h: 220 * u },
+        { font: { family: 'Inter', weight: '800', line: 1.15 }, max: 60 * u, min: 30 * u, color: '#ffffff', valign: 'bottom', maxLines: 3, shadow: true });
+    }) : null,
+  }));
   return {
     W, H, u,
+    extras,
     imgs: assets.imgs,
     col: assets.col,
     adjust: project.adjust || {},

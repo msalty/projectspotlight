@@ -247,6 +247,7 @@ input[type=range] { flex: 1; accent-color: var(--brand); height: 32px; }
 .canvas-box canvas.dragging { cursor: grabbing; }
 /* Smaller preview on the form-heavy tabs so there's room to type on a phone. */
 .editor[data-tab=details] { --preview-h: 24svh; }
+.editor[data-tab=photos].needs-photos { --preview-h: 24svh; }
 .editor[data-tab=share] { --preview-h: 30svh; }
 body.typing .editor { --preview-h: 18svh; }
 .client-editor { --preview-h: 30svh; }
@@ -351,6 +352,19 @@ body.typing .action-bar { display: none; }
 .vid-result { display: grid; gap: 10px; }
 .vid-result video { width: 100%; max-height: 60svh; border-radius: 12px; background: #000; }
 .vid-result .btn { flex: 1; }
+
+.extras { margin-top: 8px; }
+.extras .pane-h small { font-weight: 600; letter-spacing: 0; text-transform: none; margin-left: 6px; }
+.extras > p { margin: -4px 0 10px; }
+.extras-list { display: grid; gap: 8px; margin-bottom: 10px; }
+.extras-list:empty { display: none; }
+.extra-row { display: flex; align-items: center; gap: 10px; padding: 6px; border-radius: 14px; background: var(--surface); box-shadow: var(--shadow); }
+.extra-thumb { flex: none; width: 64px; height: 64px; padding: 0; border: 0; border-radius: 10px; overflow: hidden; background: var(--surface-2); }
+.extra-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.extra-row .extra-cap { flex: 1; min-width: 0; min-height: 44px; padding: 10px 12px; }
+.extra-btns { display: flex; flex: none; }
+.extra-btns .icon-btn:disabled { opacity: .3; }
+#extrasAdd.busy { opacity: .6; pointer-events: none; }
 
 /* ---------------------------------------------------------------- clients */
 .client-list { display: grid; gap: 10px; }

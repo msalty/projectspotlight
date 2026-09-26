@@ -14,7 +14,8 @@ remodelers — to turn finished jobs into branded before & after social posts in
   colors, independent of trade. The trade (13 presets) suggests job types, badges and hashtags.
 - **Logo and QR code sizes** — Small to Extra large, set on the brand and overridable per post;
   layouts make room for bigger logos and QR codes.
-- **7 templates** — Before & After, Diagonal, Spotlight, Showcase, Review, Offer and a 4-slide Carousel.
+- **7 templates** — Before & After, Diagonal, Spotlight, Showcase, Review, Offer and a Carousel
+  (cover, before, after, up to 8 extra captioned job photos, and a details slide).
 - **4 output sizes** — Square (1:1), Portrait (4:5), Story (9:16) and Landscape (1.91:1 for Facebook /
   Google Business). Every template adapts to every size.
 - **Text that fits** — headlines and descriptions shrink to fit and truncate cleanly instead of overflowing.

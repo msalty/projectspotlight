@@ -56,7 +56,7 @@ export const db = {
 // Blob ids referenced by a project or client.
 export function blobRefs(record) {
   if (!record) return [];
-  if (record.photos) return Object.values(record.photos).filter(Boolean);
+  if (record.photos) return [...Object.values(record.photos), ...(record.extras || []).map((x) => x.id)].filter(Boolean);
   return record.logo ? [record.logo] : [];
 }
 

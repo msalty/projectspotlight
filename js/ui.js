@@ -70,14 +70,20 @@ export function debounce(fn, ms) {
   return d;
 }
 
-export function pickFile({ accept = 'image/*', capture = false } = {}) {
+// Opens the file picker. Resolves with a File (or an array of Files when `multiple`), or null if cancelled.
+export function pickFile({ accept = 'image/*', capture = false, multiple = false } = {}) {
   return new Promise((resolve) => {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = accept;
+    input.multiple = multiple;
     if (capture) input.setAttribute('capture', 'environment');
     input.style.display = 'none';
-    input.onchange = () => { resolve((input.files && input.files[0]) || null); input.remove(); };
+    input.onchange = () => {
+      const files = [...(input.files || [])];
+      resolve(multiple ? (files.length ? files : null) : files[0] || null);
+      input.remove();
+    };
     input.addEventListener('cancel', () => { resolve(null); input.remove(); });
     document.body.append(input);
     input.click();

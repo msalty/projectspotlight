@@ -167,6 +167,7 @@ async function push(cfg) {
   const clientName = Object.fromEntries(clients.map((c) => [c.id, c.name]));
   const labels = new Map();
   for (const p of outP) for (const [slot, id] of Object.entries(p.photos || {})) if (id) labels.set(id, `${clientName[p.clientId] || 'Project'} - ${p.title || 'Untitled'} - ${slot}`);
+  for (const p of outP) (p.extras || []).forEach((x, i) => { if (x.id) labels.set(x.id, `${clientName[p.clientId] || 'Project'} - ${p.title || 'Untitled'} - photo ${i + 1}`); });
   for (const c of outC) if (c.logo) labels.set(c.logo, `${c.name || 'Client'} - logo`);
   if (labels.size) {
     const { missing } = await call(cfg, 'hasBlobs', { ids: [...labels.keys()] });
