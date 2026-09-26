@@ -1,7 +1,6 @@
 import { $, $$, esc, chrome, sheet, confirmSheet, toast } from '../ui.js';
 import { icon } from '../icons.js';
 import { state, loadAll, clientFor, thumbFor, saveProject, deleteProject, brandLabel } from '../store.js';
-import { SIZES } from '../presets.js';
 import { mountSyncButton } from './syncbutton.js';
 
 let filter = 'all';
@@ -40,10 +39,10 @@ export async function homeView(root) {
     ${welcome}${chips}
     <div class="project-grid" id="grid">
       ${projects.map((p) => {
-        const c = clientFor(p), s = SIZES[p.size] || SIZES.square;
+        const c = clientFor(p);
         return `<article class="project-card" data-id="${p.id}">
           <a href="#/p/${p.id}" class="card-link">
-            <div class="thumb" style="--ar:${s.w}/${s.h}"><img alt="" decoding="async"></div>
+            <div class="thumb"><img class="thumb-bg" alt="" aria-hidden="true" decoding="async"><img class="thumb-fg" alt="" decoding="async"></div>
             <div class="card-body"><h3>${esc(p.title || 'Untitled project')}</h3>
             <p>${esc([state.clients.length > 1 ? brandLabel(c) : p.category, new Date(p.updated).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })].filter(Boolean).join(' · '))}</p></div>
           </a>
@@ -58,7 +57,13 @@ export async function homeView(root) {
 
   for (const card of $$('.project-card', root)) {
     const p = state.projects.find((x) => x.id === card.dataset.id);
-    thumbFor(p).then((url) => { const img = $('img', card); if (url && img) { img.src = url; img.classList.add('in'); } });
+    // Every card uses the same 4:5 tile so the grid stays even; the full design is shown
+    // uncropped, with a blurred copy of itself filling any leftover space.
+    thumbFor(p).then((url) => {
+      if (!url) return;
+      for (const img of $$('.thumb img', card)) img.src = url;
+      $('.thumb', card).classList.add('in');
+    });
     $('.card-more', card).onclick = async () => {
       const choice = await sheet({ title: p.title || 'Untitled project', actions: [
         { label: 'Open', icon: 'pencil', value: 'open' },
