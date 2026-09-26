@@ -20,6 +20,9 @@ remodelers — to turn finished jobs into branded before & after social posts in
 - **Text that fits** — headlines and descriptions shrink to fit and truncate cleanly instead of overflowing.
 - **Photo positioning** — drag a photo on the preview to reposition it, pinch (or scroll) to zoom.
 - **Logo, trust badges, contact line and optional QR code** on the graphics.
+- **Videos for Reels, Stories and TikTok** — three animated styles (wipe reveal, slider, quick cuts) in
+  9:16, 4:5 or 1:1, ending on the branded graphic. Made on the phone as MP4 (H.264 via WebCodecs; real-time
+  recording fallback), silent so music can be added in Instagram or TikTok.
 - **Share sheet export** (multiple images for carousels), a generated caption with hashtags that is
   copied automatically, and JPG download.
 - **Local storage in IndexedDB** — photos are downscaled on upload (max 2160px) so storage stays small.
@@ -57,10 +60,11 @@ Then open `http://localhost:8080`. There is no build step.
 | `js/images.js` | Photo downscaling and decoded image cache |
 | `js/migrate.js` | One-time import from the previous version |
 | `js/sync.js` | Two-way Google Sheets/Drive sync (last write wins, deletions as tombstones) |
+| `js/video.js` | Video maker: animation styles and MP4 encoding |
 | `js/location.js` | Photo EXIF / GPS location and place-name lookup |
 | `google/Code.gs` | Apps Script backend to paste into a Google Sheet (sync, AI writing, geocoding) |
 | `sw.js` | Offline cache (network-first for app code, cache-first for fonts/icons) |
-| `fonts/`, `vendor/`, `js/icons-data.js` | Self-hosted fonts, QR code library (MIT), exifr EXIF reader (MIT), Lucide icons (ISC) |
+| `fonts/`, `vendor/`, `js/icons-data.js` | Self-hosted fonts, QR code library (MIT), exifr EXIF reader (MIT), mp4-muxer (MIT), Lucide icons (ISC) |
 
 ## Data model
 

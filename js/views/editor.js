@@ -8,6 +8,7 @@ import { db, collectGarbage } from '../db.js';
 import { buildCaption, composeCaption } from '../caption.js';
 import { getConfig, isConnected, saveGraphicsToDrive, serverCall, refreshAiFlag } from '../sync.js';
 import { photoMeta, currentPosition, placeName } from '../location.js';
+import { makeVideo, VIDEO_STYLES, VIDEO_SIZES } from '../video.js';
 
 let lastTab = 'photos';
 const touchUI = matchMedia('(pointer: coarse)').matches;
@@ -144,6 +145,21 @@ export async function editorView(root, id) {
           ${icon('folder-open')}<div><b>Save to Google Drive</b><small>Keeps a copy of the finished graphic in your Graphics folder.</small></div>
           <button class="btn tonal sm" id="driveBtn">${icon('upload')}Save</button>
         </div>
+        <div class="card video-card" id="videoCard">
+          <div class="video-head">${icon('clapperboard')}<div><b>Video for Reels &amp; Stories</b><small>A short animated before &amp; after. Add music in Instagram or TikTok.</small></div></div>
+          <div class="chip-row tight" id="vidStyles">${Object.entries(VIDEO_STYLES).map(([k, v]) => `<button class="chip sm" data-vstyle="${k}" title="${esc(v.hint)}">${esc(v.label)}</button>`).join('')}</div>
+          <div class="vid-sizes">${Object.entries(VIDEO_SIZES).map(([k, v]) => `<button data-vsize="${k}"><b>${v.label}</b><small>${esc(v.hint)}</small></button>`).join('')}</div>
+          <button class="btn primary" id="vidMake">${icon('film')}<span>Make video</span></button>
+          <div class="vid-progress" id="vidProgress" hidden><div class="vid-bar"><i id="vidBar"></i></div><button class="btn text sm" id="vidCancel">Cancel</button></div>
+          <div class="vid-result" id="vidResult" hidden>
+            <video id="vidPlayer" playsinline muted loop autoplay controls></video>
+            <p class="muted small" id="vidNote"></p>
+            <div class="row gap">
+              <button class="btn primary" id="vidShare">${icon('share')}Share video</button>
+              <button class="btn tonal" id="vidSave">${icon('download')}Save</button>
+            </div>
+          </div>
+        </div>
         <div class="field"><span>Caption <small>copied automatically when you share</small></span>
           <textarea id="fCaption" rows="9"></textarea>
           <div class="row gap">
@@ -215,7 +231,7 @@ export async function editorView(root, id) {
     $$('.seg-tabs button', root).forEach((b) => b.classList.toggle('on', b.dataset.tab === k));
     $$('.pane', root).forEach((s) => s.hidden = s.dataset.pane !== k);
     if (k === 'design') thumbsLater(0);
-    if (k === 'share') refreshCaption();
+    if (k === 'share') { refreshCaption(); syncVideoUI?.(); }
   }
   $$('.seg-tabs button', root).forEach((b) => b.onclick = () => showTab(b.dataset.tab));
 
@@ -638,6 +654,75 @@ export async function editorView(root, id) {
   $('#shareBtn', root).onclick = () => share().catch((e) => toast(e.message));
   $('#saveBtn', root).onclick = () => saveImages().catch((e) => toast(e.message));
 
+  // ------------------------------------------------------------ video
+  p.video ||= { style: 'reveal', size: 'story' };
+  let video = null;        // { blob, ext, instagramSafe, url, key }
+  let videoAbort = null;
+  const videoKey = () => JSON.stringify([p.photos, p.adjust, p.title, p.location, p.headline, p.template, p.show, p.logoSize, p.qrSize, p.video, client.updated]);
+  function syncVideoUI() {
+    $$('[data-vstyle]', root).forEach((b) => b.classList.toggle('on', b.dataset.vstyle === p.video.style));
+    $$('[data-vsize]', root).forEach((b) => b.classList.toggle('on', b.dataset.vsize === p.video.size));
+    const stale = video && video.key !== videoKey();
+    $('#vidMake span', root).textContent = video ? (stale ? 'Update video' : 'Remake video') : 'Make video';
+    if (video) $('#vidNote', root).textContent = [
+      stale ? 'You changed the post since this video was made — tap Update video.' : '',
+      video.instagramSafe ? '' : 'This browser could only make a video format Instagram may not accept. For the best results, make it in Safari on iPhone or Chrome on Android.',
+    ].filter(Boolean).join(' ');
+  }
+  $$('[data-vstyle]', root).forEach((b) => b.onclick = () => { p.video.style = b.dataset.vstyle; syncVideoUI(); changed({ redraw: false }); });
+  $$('[data-vsize]', root).forEach((b) => b.onclick = () => { p.video.size = b.dataset.vsize; syncVideoUI(); changed({ redraw: false }); });
+
+  $('#vidMake', root).onclick = async () => {
+    if (!p.photos.before && !p.photos.after) { toast('Add a photo first.'); showTab('photos'); return; }
+    const btn = $('#vidMake', root);
+    btn.hidden = true;
+    $('#vidProgress', root).hidden = false;
+    $('#vidBar', root).style.width = '0%';
+    videoAbort = new AbortController();
+    const key = videoKey();
+    try {
+      const out = await makeVideo(p, client, {
+        style: p.video.style, size: p.video.size, signal: videoAbort.signal,
+        onProgress: (x) => { $('#vidBar', root).style.width = `${Math.round(x * 100)}%`; },
+      });
+      if (video?.url) URL.revokeObjectURL(video.url);
+      video = { ...out, url: URL.createObjectURL(out.blob), key };
+      const player = $('#vidPlayer', root);
+      player.src = video.url;
+      player.play().catch(() => {});
+      $('#vidResult', root).hidden = false;
+      toast(`Video ready — ${Math.round(out.duration)} seconds`);
+    } catch (err) {
+      if (err.name !== 'AbortError') toast('Could not make the video: ' + err.message);
+    } finally {
+      videoAbort = null;
+      btn.hidden = false;
+      $('#vidProgress', root).hidden = true;
+      syncVideoUI();
+    }
+  };
+  $('#vidCancel', root).onclick = () => videoAbort?.abort();
+  const videoFile = () => new File([video.blob], fileName(0, 1).replace(/\.jpg$/, '') + '-video.' + video.ext, { type: video.blob.type });
+  $('#vidShare', root).onclick = async () => {
+    if (!video) return;
+    const text = caption();
+    navigator.clipboard?.writeText(text).catch(() => {});
+    const f = videoFile();
+    if (navigator.canShare && navigator.canShare({ files: [f] })) {
+      try { await navigator.share({ files: [f], title: p.title || 'Project Spotlight', text }); }
+      catch (e) { if (e.name !== 'AbortError') toast('Sharing failed: ' + e.message); }
+    } else { await download([f]); toast('Video saved · caption copied'); }
+  };
+  $('#vidSave', root).onclick = async () => {
+    if (!video) return;
+    const f = videoFile();
+    if (touchUI && navigator.canShare && navigator.canShare({ files: [f] })) {
+      try { await navigator.share({ files: [f] }); return; } catch (e) { if (e.name === 'AbortError') return; }
+    }
+    await download([f]);
+    toast('Video saved');
+  };
+
   // ------------------------------------------------------------ overflow menu
   $('#moreBtn').onclick = async () => {
     const v = await sheet({ title: p.title || 'Project', actions: [
@@ -676,6 +761,8 @@ export async function editorView(root, id) {
   return async () => {
     document.body.classList.remove('typing');
     prerender.cancel(); thumbsDebounced.cancel(); saveWheel.cancel();
+    videoAbort?.abort();
+    if (video?.url) URL.revokeObjectURL(video.url);
     if (saveTimer) await save();
     collectGarbage().catch(() => {});
   };

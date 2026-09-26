@@ -666,9 +666,7 @@ async function prepare(project, client) {
 }
 
 // Renders a project onto a canvas. Returns photo slots (canvas coordinates) for drag/zoom editing.
-export async function render(canvas, project, client, page = 0) {
-  const size = SIZES[project.size] || SIZES.square;
-  const assets = await prepare(project, client);
+function makeT(canvas, project, client, assets, size) {
   if (canvas.width !== size.w) canvas.width = size.w;
   if (canvas.height !== size.h) canvas.height = size.h;
   const ctx = canvas.getContext('2d');
@@ -681,12 +679,77 @@ export async function render(canvas, project, client, page = 0) {
   T.u = T.wide ? (H / 628) * 0.95 : W / 1080;
   T.ls = ELEMENT_SIZES[project.logoSize || client.logoSize || 'm']?.scale || 1;
   T.qs = ELEMENT_SIZES[project.qrSize || client.qrSize || 'm']?.scale || 1;
-  ctx.save();
-  ctx.clearRect(0, 0, W, H);
-  const tpl = templateById(project.template);
+  return T;
+}
+
+function drawTemplate(T, page) {
+  T.ctx.save();
+  T.ctx.clearRect(0, 0, T.W, T.H);
+  const tpl = templateById(T.p.template);
   tpl.draw(T, Math.min(page, (tpl.pages || [0]).length - 1));
-  ctx.restore();
+  T.ctx.restore();
+}
+
+// Renders a project onto a canvas. Returns photo slots (canvas coordinates) for drag/zoom editing.
+export async function render(canvas, project, client, page = 0) {
+  const size = SIZES[project.size] || SIZES.square;
+  const T = makeT(canvas, project, client, await prepare(project, client), size);
+  drawTemplate(T, page);
   return T.slots;
+}
+
+// Pieces for the video maker: decoded photos plus transparent overlay layers drawn with the
+// same brand styling as the still graphics, and the finished post as the closing card.
+export async function videoKit(project, client, sizeKey = 'story') {
+  const size = SIZES[sizeKey] || SIZES.story;
+  const assets = await prepare(project, client);
+  const make = (fn, w = size.w, h = size.h) => {
+    const cv = document.createElement('canvas');
+    const T = makeT(cv, project, client, assets, size);
+    if (w !== size.w || h !== size.h) { cv.width = w; cv.height = h; }
+    fn(T);
+    return cv;
+  };
+  const probe = makeT(document.createElement('canvas'), project, client, assets, size);
+  const { W, H, u } = probe;
+  const pad = 64 * u, tagH = 70 * u;
+  const tpl = templateById(project.template);
+  const endPage = tpl.pages ? tpl.pages.length - 1 : 0; // carousel: the details slide
+  return {
+    W, H, u,
+    imgs: assets.imgs,
+    col: assets.col,
+    adjust: project.adjust || {},
+    beforeTag: make((T) => pill(T, 'Before', pad, pad, { h: tagH, bg: 'rgba(15,23,42,.85)', color: '#fff' })),
+    afterTag: make((T) => pill(T, 'After', pad, pad, { h: tagH, bg: T.col.acc, color: T.col.onAcc })),
+    brand: make((T) => { if (T.p.show.logo) logo(T, W - pad, pad, 96 * u * T.ls, { align: 'right', maxW: W * 0.45 }); }),
+    // Slider style shows both labels at once, below the corner logo.
+    splitBefore: make((T) => pill(T, 'Before', pad, pad + 96 * u * T.ls + 40 * u, { h: tagH, bg: 'rgba(15,23,42,.85)', color: '#fff' })),
+    splitAfter: make((T) => pill(T, 'After', W - pad, pad + 96 * u * T.ls + 40 * u, { h: tagH, bg: T.col.acc, color: T.col.onAcc, align: 'right' })),
+    caption: make((T) => {
+      const { ctx } = T;
+      const top = H * (T.tall ? 0.56 : 0.5);
+      const g = ctx.createLinearGradient(0, top, 0, H);
+      g.addColorStop(0, rgba(T.col.pri, 0)); g.addColorStop(0.35, rgba(T.col.pri, 0.78)); g.addColorStop(1, rgba(T.col.pri, 0.96));
+      ctx.fillStyle = g; ctx.fillRect(0, top, W, H - top);
+      const boxH = (H - top) * 0.62;
+      const y0 = H - boxH - pad * 0.9;
+      tagRow(T, pad, y0, W - pad * 2, 26 * u, T.col.acc2);
+      const t = fitText(ctx, T.p.title || 'Your Project Title', { x: pad, y: y0 + 40 * u, w: W - pad * 2, h: boxH * 0.62 },
+        { font: T.f, max: (T.tall ? 120 : 96) * u, min: 50 * u, color: T.col.onPri, upper: T.f.upper, maxLines: 3 });
+      if (T.p.show.contact) contact(T, pad, t.bottom + 26 * u, W - pad * 2, { size: 34 * u, color: rgba(T.col.onPri, 0.92) });
+    }),
+    handle: make((T) => {
+      const { ctx } = T, s = 120 * u;
+      ctx.fillStyle = T.col.acc;
+      ctx.beginPath(); ctx.arc(s / 2, s / 2, s / 2 - 4, 0, Math.PI * 2); ctx.fill();
+      drawIcon(T, 'chevron-right', T.col.onAcc, s * 0.46, s * 0.26, s * 0.48);
+      ctx.save(); ctx.translate(s, 0); ctx.scale(-1, 1);
+      drawIcon(T, 'chevron-right', T.col.onAcc, s * 0.46, s * 0.26, s * 0.48);
+      ctx.restore();
+    }, Math.round(120 * u), Math.round(120 * u)),
+    endCard: make((T) => drawTemplate(T, endPage)),
+  };
 }
 
 export async function renderBlob(project, client, page = 0) {
