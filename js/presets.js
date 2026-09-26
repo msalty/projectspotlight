@@ -1,55 +1,55 @@
 // Static configuration: trades, badges, fonts and output sizes.
 
 export const TRADES = [
-  { id: 'electrical', label: 'Electrical', icon: 'zap', primary: '#111827', accent: '#facc15',
+  { id: 'electrical', label: 'Electrical', icon: 'zap',
     categories: ['Panel Upgrade', 'EV Charger', 'Lighting', 'Rewiring', 'Generator', 'Service Call'],
     hashtags: '#electrician #electrical #electricalcontractor #panelupgrade',
     badges: ['Licensed & Insured', 'Free Estimates', '24/7 Emergency'] },
-  { id: 'plumbing', label: 'Plumbing', icon: 'droplet', primary: '#0b3a67', accent: '#38bdf8',
+  { id: 'plumbing', label: 'Plumbing', icon: 'droplet',
     categories: ['Bathroom', 'Water Heater', 'Repiping', 'Drain & Sewer', 'Fixtures', 'Leak Repair'],
     hashtags: '#plumber #plumbing #plumbingservices #waterheater',
     badges: ['Licensed & Insured', '24/7 Emergency', 'Upfront Pricing'] },
-  { id: 'hvac', label: 'HVAC', icon: 'snowflake', primary: '#0c4a6e', accent: '#f97316',
+  { id: 'hvac', label: 'HVAC', icon: 'snowflake',
     categories: ['AC Install', 'Furnace', 'Heat Pump', 'Ductwork', 'Maintenance', 'Mini-Split'],
     hashtags: '#hvac #heating #airconditioning #heatpump',
     badges: ['Licensed & Insured', 'Financing Available', 'Same-Day Service'] },
-  { id: 'roofing', label: 'Roofing', icon: 'house', primary: '#7f1d1d', accent: '#fbbf24',
+  { id: 'roofing', label: 'Roofing', icon: 'house',
     categories: ['Roof Replacement', 'Roof Repair', 'Gutters', 'Siding', 'Storm Damage'],
     hashtags: '#roofing #roofer #newroof #roofreplacement',
     badges: ['Licensed & Insured', 'Free Inspections', 'Warranty Included'] },
-  { id: 'remodeling', label: 'Remodeling', icon: 'hammer', primary: '#1f2937', accent: '#f59e0b',
+  { id: 'remodeling', label: 'Remodeling', icon: 'hammer',
     categories: ['Kitchen', 'Bathroom', 'Basement', 'Addition', 'Whole Home'],
     hashtags: '#remodel #renovation #homeimprovement #beforeandafter',
     badges: ['Licensed & Insured', 'Free Estimates', 'Family Owned'] },
-  { id: 'general', label: 'General Contractor', icon: 'hard-hat', primary: '#102a43', accent: '#f4c430',
+  { id: 'general', label: 'General Contractor', icon: 'hard-hat',
     categories: ['New Construction', 'Renovation', 'Commercial', 'Deck', 'Framing'],
     hashtags: '#generalcontractor #construction #builder #homeimprovement',
     badges: ['Licensed & Insured', 'Free Estimates', 'Satisfaction Guaranteed'] },
-  { id: 'painting', label: 'Painting', icon: 'paint-roller', primary: '#312e81', accent: '#f472b6',
+  { id: 'painting', label: 'Painting', icon: 'paint-roller',
     categories: ['Interior', 'Exterior', 'Cabinets', 'Deck Staining', 'Drywall'],
     hashtags: '#painting #painter #housepainting #interiorpainting',
     badges: ['Licensed & Insured', 'Free Estimates', 'Clean Job Sites'] },
-  { id: 'landscaping', label: 'Landscaping', icon: 'leaf', primary: '#14532d', accent: '#a3e635',
+  { id: 'landscaping', label: 'Landscaping', icon: 'leaf',
     categories: ['Hardscape', 'Patio', 'Lawn Care', 'Planting', 'Retaining Wall', 'Cleanup'],
     hashtags: '#landscaping #hardscape #lawncare #curbappeal',
     badges: ['Licensed & Insured', 'Free Estimates', 'Family Owned'] },
-  { id: 'flooring', label: 'Flooring', icon: 'grid-2x2', primary: '#3b2f2f', accent: '#d6a55a',
+  { id: 'flooring', label: 'Flooring', icon: 'grid-2x2',
     categories: ['Hardwood', 'Tile', 'LVP', 'Carpet', 'Refinishing'],
     hashtags: '#flooring #hardwoodfloors #tile #flooringinstallation',
     badges: ['Licensed & Insured', 'Free Estimates', 'Financing Available'] },
-  { id: 'handyman', label: 'Handyman', icon: 'wrench', primary: '#0f172a', accent: '#fb923c',
+  { id: 'handyman', label: 'Handyman', icon: 'wrench',
     categories: ['Repairs', 'Installations', 'Carpentry', 'Drywall', 'Odd Jobs'],
     hashtags: '#handyman #homerepair #handymanservices #fixit',
     badges: ['Insured', 'Upfront Pricing', 'Same-Day Service'] },
-  { id: 'concrete', label: 'Concrete & Masonry', icon: 'brick-wall', primary: '#374151', accent: '#fcd34d',
+  { id: 'concrete', label: 'Concrete & Masonry', icon: 'brick-wall',
     categories: ['Driveway', 'Patio', 'Stonework', 'Foundation', 'Steps'],
     hashtags: '#concrete #masonry #hardscape #stonework',
     badges: ['Licensed & Insured', 'Free Estimates', 'Warranty Included'] },
-  { id: 'solar', label: 'Solar', icon: 'sun', primary: '#1e3a8a', accent: '#fbbf24',
+  { id: 'solar', label: 'Solar', icon: 'sun',
     categories: ['Solar Install', 'Battery Storage', 'Panel Cleaning', 'Inspection'],
     hashtags: '#solar #solarenergy #solarpanels #cleanenergy',
     badges: ['Licensed & Insured', 'Financing Available', 'Warranty Included'] },
-  { id: 'cleaning', label: 'Cleaning', icon: 'sparkles', primary: '#0e7490', accent: '#a5f3fc',
+  { id: 'cleaning', label: 'Cleaning', icon: 'sparkles',
     categories: ['Deep Clean', 'Move-Out', 'Pressure Washing', 'Windows', 'Post-Construction'],
     hashtags: '#cleaning #pressurewashing #cleaningservice #satisfying',
     badges: ['Insured', 'Satisfaction Guaranteed', 'Eco-Friendly'] },
@@ -81,11 +81,34 @@ export const SIZES = {
 
 export const HEADLINE_TAGS = ['Project Spotlight', 'Just Completed', 'Before & After', 'Transformation', 'Recent Work', 'Job Done Right'];
 
-export const PALETTES = [
-  ['#102a43', '#f4c430'], ['#111827', '#facc15'], ['#0b3a67', '#38bdf8'], ['#7f1d1d', '#fbbf24'],
-  ['#14532d', '#a3e635'], ['#312e81', '#f472b6'], ['#0c4a6e', '#f97316'], ['#1f2937', '#ef4444'],
-  ['#3b2f2f', '#d6a55a'], ['#0e7490', '#fde047'], ['#18181b', '#22d3ee'], ['#ffffff', '#dc2626'],
+// Size choices for the logo and QR code on the graphics.
+export const ELEMENT_SIZES = {
+  s: { label: 'S', name: 'Small', scale: 0.75 },
+  m: { label: 'M', name: 'Medium', scale: 1 },
+  l: { label: 'L', name: 'Large', scale: 1.35 },
+  xl: { label: 'XL', name: 'Extra large', scale: 1.7 },
+};
+
+// Color themes — independent of trade. `primary` is the background, `accent` the highlight.
+export const THEMES = [
+  { id: 'navy-gold', name: 'Navy & Gold', primary: '#102a43', accent: '#f4c430' },
+  { id: 'charcoal-yellow', name: 'Charcoal & Yellow', primary: '#111827', accent: '#facc15' },
+  { id: 'ocean', name: 'Ocean Blue', primary: '#0b3a67', accent: '#38bdf8' },
+  { id: 'royal-sky', name: 'Royal & Sky', primary: '#1e3a8a', accent: '#93c5fd' },
+  { id: 'steel-orange', name: 'Steel & Orange', primary: '#1f2937', accent: '#f97316' },
+  { id: 'black-red', name: 'Black & Red', primary: '#0a0a0a', accent: '#ef4444' },
+  { id: 'brick-amber', name: 'Brick & Amber', primary: '#7f1d1d', accent: '#fbbf24' },
+  { id: 'forest-lime', name: 'Forest & Lime', primary: '#14532d', accent: '#a3e635' },
+  { id: 'slate-mint', name: 'Slate & Mint', primary: '#334155', accent: '#6ee7b7' },
+  { id: 'teal-sun', name: 'Teal & Sun', primary: '#0e7490', accent: '#fde047' },
+  { id: 'espresso-tan', name: 'Espresso & Tan', primary: '#3b2f2f', accent: '#d6a55a' },
+  { id: 'plum-pink', name: 'Plum & Pink', primary: '#312e81', accent: '#f472b6' },
+  { id: 'graphite-cyan', name: 'Graphite & Cyan', primary: '#18181b', accent: '#22d3ee' },
+  { id: 'white-red', name: 'Clean White & Red', primary: '#ffffff', accent: '#dc2626' },
+  { id: 'white-blue', name: 'Clean White & Blue', primary: '#ffffff', accent: '#1d4ed8' },
 ];
+export const themeFor = (c) => THEMES.find((t) => t.primary.toLowerCase() === String(c.primary).toLowerCase() && t.accent.toLowerCase() === String(c.accent).toLowerCase()) || null;
+
 
 export function newClient(overrides = {}) {
   const trade = tradeById(overrides.trade || 'general');
@@ -101,8 +124,10 @@ export function newClient(overrides = {}) {
     years: '',
     rating: '',
     serviceArea: '',
-    primary: trade.primary,
-    accent: trade.accent,
+    primary: THEMES[0].primary,
+    accent: THEMES[0].accent,
+    logoSize: 'm',
+    qrSize: 'm',
     font: 'anton',
     logo: null,
     logoChip: true,
@@ -130,6 +155,8 @@ export function newProject(overrides = {}) {
     show: { logo: true, badges: true, contact: true, qr: false },
     review: { text: '', name: '' },
     offer: { headline: '', details: '', cta: 'Call today' },
+    logoSize: '',        // '' = use the brand's default size
+    qrSize: '',
     notes: '',           // a few words for the AI writer
     tone: 'professional',
     photoMeta: {},       // slot -> { lat, lon, taken } read from the original photo's EXIF

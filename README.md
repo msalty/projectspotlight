@@ -7,9 +7,13 @@ remodelers — to turn finished jobs into branded before & after social posts in
 
 - **Mobile-first UI** — bottom tab bar, sticky live preview, big tap targets, safe-area aware, works
   offline once installed, light and dark mode. Scales up to a two-column layout on desktop.
-- **Multiple clients / brand kits** — each with its own trade, logo, colors, headline font, phone,
-  website, license #, years in business, star rating, service area, trust badges and hashtags.
-- **Trade presets** — 13 trades with suggested colors, icons, categories, badges and hashtags.
+- **Brand** — set up your business once: name, trade, phone, website, license #, years in business,
+  star rating, service area, logo, color theme, headline font, trust badges and hashtags. Rarely need a
+  second brand (another business)? Add one from the Brand menu and a brand picker appears.
+- **Color themes** — 15 named themes (Navy & Gold, Forest & Lime, Clean White & Red…) plus custom
+  colors, independent of trade. The trade (13 presets) suggests job types, badges and hashtags.
+- **Logo and QR code sizes** — Small to Extra large, set on the brand and overridable per post;
+  layouts make room for bigger logos and QR codes.
 - **7 templates** — Before & After, Diagonal, Spotlight, Showcase, Review, Offer and a 4-slide Carousel.
 - **4 output sizes** — Square (1:1), Portrait (4:5), Story (9:16) and Landscape (1.91:1 for Facebook /
   Google Business). Every template adapts to every size.
@@ -46,7 +50,7 @@ Then open `http://localhost:8080`. There is no build step.
 | --- | --- |
 | `index.html`, `css/app.css` | App shell and styles |
 | `js/app.js` | Hash router and start-up |
-| `js/views/*.js` | Projects, project editor, clients/brand editor, settings |
+| `js/views/*.js` | Projects, project editor, brand editor, settings |
 | `js/render.js` | Canvas rendering engine and templates |
 | `js/presets.js` | Trades, badges, fonts, sizes and record defaults |
 | `js/db.js`, `js/store.js` | IndexedDB storage and in-memory cache |

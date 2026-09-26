@@ -8,15 +8,16 @@ import { registerServiceWorker } from './pwa.js';
 import { startAutoSync } from './sync.js';
 import { homeView } from './views/home.js';
 import { editorView } from './views/editor.js';
-import { clientsView, clientView } from './views/client.js';
+import { brandTab, brandsView, brandView } from './views/brand.js';
 import { settingsView } from './views/settings.js';
 
 const routes = [
   [/^\/?$/, homeView],
   [/^\/new$/, newProjectRoute],
   [/^\/p\/([\w-]+)$/, editorView],
-  [/^\/clients$/, clientsView],
-  [/^\/c\/(new|[\w-]+)$/, clientView],
+  [/^\/brand$/, brandTab],
+  [/^\/clients$/, brandsView],
+  [/^\/c\/(new|[\w-]+)$/, brandView],
   [/^\/settings$/, settingsView],
 ];
 
@@ -68,7 +69,7 @@ window.addEventListener('hashchange', route);
 // Another device changed something: refresh list screens (the editor keeps what you're typing).
 window.addEventListener('ps:remote-change', () => {
   const path = (location.hash.slice(1) || '/').split('?')[0];
-  if (/^\/?$|^\/clients$|^\/settings$/.test(path)) route();
+  if (/^\/?$|^\/clients$|^\/brand$|^\/settings$/.test(path)) route();
 });
 window.addEventListener('unhandledrejection', (e) => { console.error(e.reason); toast('Error: ' + (e.reason?.message || e.reason)); });
 

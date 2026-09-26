@@ -20,20 +20,20 @@ export async function homeView(root) {
       <p class="eyebrow">Contractor marketing, simplified</p>
       <h2>Turn finished jobs into scroll-stopping posts.</h2>
       <ol class="steps">
-        <li><span>1</span><div><b>Set up a brand</b><small>Logo, colors, phone and trust badges — once per client.</small></div></li>
+        <li><span>1</span><div><b>Set up your brand</b><small>Logo, colors, phone and trust badges — just once.</small></div></li>
         <li><span>2</span><div><b>Snap before &amp; after</b><small>Straight from your phone's camera or library.</small></div></li>
         <li><span>3</span><div><b>Share</b><small>Pick a template and post to Instagram, Facebook or Google.</small></div></li>
       </ol>
       <div class="welcome-actions">
         <a class="btn primary" href="#/new">${icon('plus')}New project</a>
-        <a class="btn tonal" href="${state.clients.length ? '#/c/' + state.clients[0].id : '#/c/new'}">${icon('palette')}Set up brand</a>
+        <a class="btn tonal" href="#/brand">${icon('palette')}Set up your brand</a>
       </div>
     </section>` : '';
 
   const chips = state.clients.length > 1 ? `
-    <div class="chip-row" role="tablist" aria-label="Filter by client">
+    <div class="chip-row" role="tablist" aria-label="Filter by brand">
       <button class="chip ${filter === 'all' ? 'on' : ''}" data-filter="all">All</button>
-      ${state.clients.map((c) => `<button class="chip ${filter === c.id ? 'on' : ''}" data-filter="${c.id}"><i class="dot" style="background:${esc(c.accent)}"></i>${esc(c.name || 'Untitled client')}</button>`).join('')}
+      ${state.clients.map((c) => `<button class="chip ${filter === c.id ? 'on' : ''}" data-filter="${c.id}"><i class="dot" style="background:${esc(c.accent)}"></i>${esc(c.name || 'Untitled brand')}</button>`).join('')}
     </div>` : '';
 
   root.innerHTML = `
@@ -51,7 +51,7 @@ export async function homeView(root) {
         </article>`;
       }).join('')}
     </div>
-    ${state.projects.length && !projects.length ? `<p class="muted center pad">No projects for this client yet.</p>` : ''}
+    ${state.projects.length && !projects.length ? `<p class="muted center pad">No projects for this brand yet.</p>` : ''}
     <a class="fab" href="#/new">${icon('plus')}<span>New project</span></a>`;
 
   $$('[data-filter]', root).forEach((b) => b.onclick = () => { filter = b.dataset.filter; homeView(root); });

@@ -1,7 +1,7 @@
 // Canvas rendering engine. Templates are laid out in relative units so every template
 // works at every output size (square, portrait, story, landscape).
 import qrcode from '../vendor/qrcode.mjs';
-import { FONT_STYLES, SIZES, tradeById } from './presets.js';
+import { FONT_STYLES, SIZES, ELEMENT_SIZES, tradeById } from './presets.js';
 import { iconImage } from './icons.js';
 import { imageFor } from './images.js';
 
@@ -325,19 +325,30 @@ function qr(T, x, y, size, o = {}) {
   return size;
 }
 
+// How much taller the footer must be for the chosen logo / QR sizes.
+function footScale(T) {
+  return Math.max(1, T.p.show.logo ? T.ls : 0, T.p.show.qr && qrUrl(T) ? T.qs : 0);
+}
+
 // Logo + company name + contact line, with optional QR at the right edge.
+// `h` already includes footScale(); text is sized from the unscaled base height.
 function brandFooter(T, x, y, w, h, o = {}) {
   const { ctx, u } = T;
   const on = o.on || T.col.onPri;
-  const qs = qr(T, x + w, y + h - h * 1.0, h, { align: 'right' });
+  const base = h / footScale(T);
+  const qs = qr(T, x + w, y + h - base * T.qs, base * T.qs, { align: 'right' });
   const avail = w - (qs ? qs + 24 * u : 0);
-  const lw = logo(T, x, y + (h - h * 0.86) / 2, h * 0.86, { maxW: avail * 0.45 });
+  const lh = base * 0.86 * T.ls;
+  const lw = logo(T, x, y + (h - lh) / 2, lh, { maxW: avail * (T.ls > 1 ? 0.6 : 0.45) });
   const tx = x + (lw ? lw + 22 * u : 0), tw = avail - (tx - x);
+  const ty = y + (h - base) / 2;
+  // Big logo + QR in a narrow panel: skip the name/contact text rather than squeeze it unreadably.
+  if (lw && tw < 230 * u) return;
   const hasContact = T.p.show.contact && contactParts(T).length;
   const name = T.c.name || 'Your Company';
-  const nameBox = { x: tx, y: y + (hasContact ? h * 0.06 : h * 0.2), w: tw, h: hasContact ? h * 0.46 : h * 0.6 };
-  fitText(ctx, name, nameBox, { font: T.f, max: Math.round(h * (hasContact ? 0.42 : 0.5)), color: on, maxLines: 1, upper: T.f.upper, valign: 'center' });
-  if (hasContact) contact(T, tx, y + h * 0.56, tw, { size: h * 0.26, color: rgba(on, 0.9) });
+  const nameBox = { x: tx, y: ty + (hasContact ? base * 0.06 : base * 0.2), w: tw, h: hasContact ? base * 0.46 : base * 0.6 };
+  fitText(ctx, name, nameBox, { font: T.f, max: Math.round(base * (hasContact ? 0.42 : 0.5)), color: on, maxLines: 1, upper: T.f.upper, valign: 'center' });
+  if (hasContact) contact(T, tx, ty + base * 0.56, tw, { size: base * 0.26, color: rgba(on, 0.9) });
 }
 
 function tagRow(T, x, y, w, size, color) {
@@ -361,7 +372,7 @@ function tagRow(T, x, y, w, size, color) {
 function infoStack(T, box, o = {}) {
   const { u } = T;
   const on = o.on || T.col.onPri;
-  const footH = o.footH ?? Math.round(Math.min(118 * u, box.h * 0.26));
+  const footH = Math.round(Math.min((o.footH ?? Math.min(118 * u, box.h * 0.26)) * footScale(T), box.h * 0.5));
   const labelSize = o.labelSize || 22 * u;
   let y = box.y;
   if (o.tag !== false) { tagRow(T, box.x, y + labelSize * 0.6, box.w, labelSize, T.col.acc2); y += labelSize * 1.2 + 18 * u; }
@@ -460,7 +471,7 @@ function spotlight(T, o = {}) {
   const top = ctx.createLinearGradient(0, 0, 0, 220 * u);
   top.addColorStop(0, 'rgba(0,0,0,.35)'); top.addColorStop(1, 'rgba(0,0,0,0)');
   ctx.fillStyle = top; ctx.fillRect(0, 0, W, 220 * u);
-  logo(T, pad, pad * 0.8, 96 * u, { maxW: W * 0.5 });
+  logo(T, pad, pad * 0.8, 96 * u * T.ls, { maxW: W * 0.62 });
   if (T.imgs.before && T.imgs.after && o.inset !== false) {
     const s = W * 0.28, x = W - pad - s, y = pad * 0.8;
     ctx.fillStyle = '#ffffff';
@@ -495,9 +506,10 @@ function showcase(T) {
       { titleMax: 62 * u, descMax: 24 * u, labelSize: 18 * u, descLines: 3, badges: false, footH: 86 * u });
     return;
   }
-  const head = 120 * u;
-  const lw = logo(T, pad, pad * 0.7, 88 * u, { maxW: W * 0.4 });
-  fitText(ctx, T.c.name || 'Your Company', { x: pad + (lw ? lw + 22 * u : 0), y: pad * 0.7, w: W - pad * 2 - lw - 22 * u, h: 88 * u },
+  const lh = 88 * u * T.ls;
+  const head = 32 * u + lh;
+  const lw = logo(T, pad, pad * 0.7, lh, { maxW: W * 0.55 });
+  fitText(ctx, T.c.name || 'Your Company', { x: pad + (lw ? lw + 22 * u : 0), y: pad * 0.7, w: W - pad * 2 - lw - 22 * u, h: lh },
     { font: T.f, max: 44 * u, color: T.col.onPri, upper: T.f.upper, maxLines: 1, valign: 'center' });
   const ch = H * (T.tall ? 0.46 : T.portrait ? 0.45 : 0.4);
   const cy = pad * 0.7 + head;
@@ -513,7 +525,7 @@ function review(T) {
   const pad = 70 * u;
   photo(T, T.imgs.after || !T.imgs.before ? 'after' : 'before', { x: 0, y: 0, w: W, h: H });
   ctx.fillStyle = rgba(T.col.pri, 0.86); ctx.fillRect(0, 0, W, H);
-  const footH = (T.wide ? 84 : 110) * u;
+  const footH = (T.wide ? 84 : 110) * u * footScale(T);
   const starS = (T.wide ? 40 : 56) * u;
   const text = T.p.review.text || 'They showed up on time, explained every step, and left the place spotless. The results are better than we imagined!';
   const quote = `“${text.replace(/^["“]|["”]$/g, '')}”`;
@@ -558,7 +570,7 @@ function offer(T) {
     photo(T, T.imgs.after || !T.imgs.before ? 'after' : 'before', { x: 0, y: 0, w: W, h: ph }, path);
     ctx.strokeStyle = T.col.acc; ctx.lineWidth = 12 * u;
     ctx.beginPath(); ctx.moveTo(-5, ph + 2 * u); ctx.lineTo(W + 5, ph - 92 * u); ctx.stroke();
-    logo(T, pad, pad * 0.7, 92 * u, { maxW: W * 0.5 });
+    logo(T, pad, pad * 0.7, 92 * u * T.ls, { maxW: W * 0.62 });
     panel = { x: pad, y: ph + 30 * u, w: W - pad * 2, h: H - ph - 30 * u - pad * 0.6 };
   }
   const { x, w } = panel;
@@ -573,9 +585,10 @@ function offer(T) {
   const ctaY = bottom - ctaH - (badgeH ? badgeH + 26 * u : 0);
   const t = fitText(ctx, head, { x, y, w, h: (ctaY - y) * 0.52 },
     { font: T.f, max: (T.wide ? 84 : T.tall ? 150 : 124) * u, min: 44 * u, color: T.col.onPri, upper: T.f.upper, maxLines: 3 });
-  fitText(ctx, details, { x, y: t.bottom + 18 * u, w: hasQr ? w - 200 * u : w, h: ctaY - t.bottom - 44 * u },
+  const qSize = 170 * u * T.qs;
+  fitText(ctx, details, { x, y: t.bottom + 18 * u, w: hasQr ? w - qSize - 30 * u : w, h: ctaY - t.bottom - 44 * u },
     { font: BODY, max: (T.wide ? 26 : 34) * u, min: 20 * u, color: rgba(T.col.onPri, 0.86), maxLines: 4 });
-  if (hasQr) qr(T, x + w, ctaY - 190 * u, 170 * u, { align: 'right' });
+  if (hasQr) qr(T, x + w, Math.max(t.bottom + 10 * u, ctaY - qSize - 20 * u), qSize, { align: 'right' });
   ctx.fillStyle = T.col.acc;
   const ctaW = Math.min(w, 760 * u);
   rr(ctx, x, ctaY, ctaW, ctaH, ctaH / 2); ctx.fill();
@@ -602,7 +615,8 @@ function carousel(T, page) {
     const h = (T.wide ? 64 : 88) * u;
     pill(T, key === 'before' ? 'Before' : 'After', pad, H - pad - h,
       key === 'before' ? { h, bg: 'rgba(15,23,42,.85)', color: '#fff' } : { h, bg: T.col.acc, color: T.col.onAcc });
-    logo(T, W - pad, H - pad - h, h, { align: 'right', maxW: W * 0.35 });
+    const lh = h * T.ls;
+    logo(T, W - pad, H - pad - lh, lh, { align: 'right', maxW: W * 0.5 });
     return;
   }
   ctx.fillStyle = T.col.pri; ctx.fillRect(0, 0, W, H);
@@ -665,6 +679,8 @@ export async function render(canvas, project, client, page = 0) {
     wide: W / H > 1.4, tall: H / W > 1.6, portrait: H / W > 1.15 && H / W <= 1.6,
   };
   T.u = T.wide ? (H / 628) * 0.95 : W / 1080;
+  T.ls = ELEMENT_SIZES[project.logoSize || client.logoSize || 'm']?.scale || 1;
+  T.qs = ELEMENT_SIZES[project.qrSize || client.qrSize || 'm']?.scale || 1;
   ctx.save();
   ctx.clearRect(0, 0, W, H);
   const tpl = templateById(project.template);

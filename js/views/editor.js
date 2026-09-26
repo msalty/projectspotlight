@@ -2,7 +2,7 @@ import { $, $$, esc, chrome, sheet, confirmSheet, toast, debounce, pickFile } fr
 import { icon } from '../icons.js';
 import { state, loadAll, clientFor, saveProject, deleteProject } from '../store.js';
 import { render, renderBlob, TEMPLATES, templateById, pageCount } from '../render.js';
-import { SIZES, FONT_STYLES, HEADLINE_TAGS, tradeById } from '../presets.js';
+import { SIZES, FONT_STYLES, HEADLINE_TAGS, ELEMENT_SIZES, tradeById } from '../presets.js';
 import { prepareImage, imageFor, aiImageData } from '../images.js';
 import { db, collectGarbage } from '../db.js';
 import { buildCaption, composeCaption } from '../caption.js';
@@ -81,10 +81,10 @@ export async function editorView(root, id) {
           <button class="btn primary" id="aiBtn">${icon('sparkles')}<span>Write title, description &amp; caption</span></button>
           <p class="muted small" id="aiNote" hidden></p>
         </div>
-        <label class="field"><span>Client / brand</span>
+        <label class="field" ${state.clients.length > 1 ? '' : 'hidden'}><span>Brand</span>
           <div class="row gap">
-            <select id="fClient">${state.clients.map((c) => `<option value="${c.id}">${esc(c.name || 'Untitled client')}</option>`).join('')}<option value="__new">+ Add a new client…</option></select>
-            <a class="btn tonal sm" id="editClient" href="#/c/${client.id}">${icon('palette')}Brand</a>
+            <select id="fClient">${state.clients.map((c) => `<option value="${c.id}">${esc(c.name || 'Untitled brand')}</option>`).join('')}<option value="__new">+ Add another brand…</option></select>
+            <a class="btn tonal sm" id="editClient" href="#/c/${client.id}?from=p/${p.id}">${icon('palette')}Edit</a>
           </div>
         </label>
         <label class="field"><span>Project title</span><input id="fTitle" autocomplete="off" enterkeyhint="next" placeholder="e.g. 200A Panel Upgrade" value="${esc(p.title)}"></label>
@@ -127,7 +127,16 @@ export async function editorView(root, id) {
           ${[['logo', 'Logo', 'image'], ['badges', 'Trust badges', 'shield-check'], ['contact', 'Phone & website', 'phone'], ['qr', 'QR code to website', 'qr-code']]
             .map(([k, l, ic]) => `<label class="switch-row">${icon(ic)}<span>${l}</span><input type="checkbox" role="switch" data-show="${k}"></label>`).join('')}
         </div>
-        <p class="muted small" id="qrNote" hidden>Add a website or booking link to the brand to use a QR code.</p>
+        <p class="muted small" id="qrNote" hidden>Add a website or QR code link to your brand to use a QR code.</p>
+        <div class="card list sizes">
+          ${[['logoSize', 'Logo size', 'image'], ['qrSize', 'QR code size', 'qr-code']].map(([k, l, ic]) => `
+            <div class="switch-row" data-size-row="${k}">${icon(ic)}<span>${l}</span>
+              <div class="mini-seg" data-psize="${k}">
+                <button data-v="" title="Use your brand's setting">Brand</button>
+                ${Object.entries(ELEMENT_SIZES).map(([v, z]) => `<button data-v="${v}" aria-label="${z.name}">${z.label}</button>`).join('')}
+              </div>
+            </div>`).join('')}
+        </div>
       </section>
 
       <section class="pane" data-pane="share">
@@ -381,7 +390,7 @@ export async function editorView(root, id) {
     if (e.target.value === '__new') { await save(); location.hash = '#/c/new?for=' + p.id; return; }
     p.clientId = e.target.value;
     client = clientFor(p);
-    $('#editClient', root).href = '#/c/' + client.id;
+    $('#editClient', root).href = `#/c/${client.id}?from=p/${p.id}`;
     renderCatChips();
     changed();
   };
@@ -499,6 +508,9 @@ export async function editorView(root, id) {
     $$('[data-font]', root).forEach((b) => b.classList.toggle('on', b.dataset.font === (p.font || '')));
     $$('[data-show]', root).forEach((i) => i.checked = !!p.show[i.dataset.show]);
     $('#qrNote', root).hidden = !(p.show.qr && !(client.website || client.bookingUrl));
+    $$('[data-psize]', root).forEach((seg) => $$('[data-v]', seg).forEach((b) => b.classList.toggle('on', b.dataset.v === (p[seg.dataset.psize] || ''))));
+    $('[data-size-row="logoSize"]', root).hidden = !p.show.logo;
+    $('[data-size-row="qrSize"]', root).hidden = !p.show.qr;
     renderTplFields();
   }
   function renderTplFields() {
@@ -524,6 +536,12 @@ export async function editorView(root, id) {
   $$('[data-tpl]', root).forEach((b) => b.onclick = () => { p.template = b.dataset.tpl; page = 0; syncDesign(); changed(); });
   $$('[data-size]', root).forEach((b) => b.onclick = () => { p.size = b.dataset.size; syncDesign(); changed(); thumbsLater(0); });
   $$('[data-font]', root).forEach((b) => b.onclick = () => { p.font = b.dataset.font; syncDesign(); changed(); });
+  $$('[data-psize]', root).forEach((seg) => seg.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-v]');
+    if (!b) return;
+    p[seg.dataset.psize] = b.dataset.v;
+    syncDesign(); changed();
+  }));
   $$('[data-show]', root).forEach((i) => i.onchange = () => { p.show[i.dataset.show] = i.checked; syncDesign(); changed(); });
 
   // Live template thumbnails (only while the Design tab is visible).

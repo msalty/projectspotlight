@@ -29,7 +29,7 @@ export async function settingsView(root) {
     <section class="card setting" id="syncCard">
       <div class="setting-head">${icon(connected ? 'cloud' : 'cloud-off')}<div><h3>Google Sync</h3>
         <p class="muted">${connected
-          ? 'Projects and clients sync to your Google Sheet; photos and logos are stored in Google Drive. Use the same web app URL and secret key on every phone and computer.'
+          ? 'Projects and your brand sync to your Google Sheet; photos and logos are stored in Google Drive. Use the same web app URL and secret key on every phone and computer.'
           : 'Keep projects in a Google Sheet and photos in Google Drive, and use the app on all your phones and computers.'}</p></div></div>
       ${connected ? `
         <p class="sync-line" id="syncLine"></p>
@@ -57,13 +57,13 @@ export async function settingsView(root) {
     </section>`}
 
     <section class="card setting">
-      <div class="setting-head">${icon('briefcase')}<div><h3>Storage</h3><p class="muted" id="storageInfo">${state.projects.length} projects · ${state.clients.length} clients saved on this device.</p></div></div>
+      <div class="setting-head">${icon('briefcase')}<div><h3>Storage</h3><p class="muted" id="storageInfo">${state.projects.length} projects · ${state.clients.length} brand${state.clients.length === 1 ? '' : 's'} saved on this device.</p></div></div>
       <button class="btn tonal" id="persistBtn">${icon('shield-check')}Keep my data safe on this device</button>
       <p class="muted small">Asks the browser not to clear your projects when space runs low.</p>
     </section>
 
     <section class="card setting">
-      <div class="setting-head">${icon('file-down')}<div><h3>Backup</h3><p class="muted">Export everything — projects, photos, clients and logos — to a single file you can restore on any device.</p></div></div>
+      <div class="setting-head">${icon('file-down')}<div><h3>Backup</h3><p class="muted">Export everything — projects, photos, brand and logo — to a single file you can restore on any device.</p></div></div>
       <div class="row gap wrap">
         <button class="btn tonal" id="exportBtn">${icon('download')}Export backup</button>
         <button class="btn tonal" id="importBtn">${icon('upload')}Restore backup</button>
@@ -151,7 +151,7 @@ export async function settingsView(root) {
     try {
       const data = JSON.parse(await f.text());
       if (data.app !== 'project-spotlight') throw new Error('This is not a Project Spotlight backup.');
-      if (!await confirmSheet('Restore this backup?', `${data.projects.length} projects and ${data.clients.length} clients will be added. Items with the same ID are replaced.`, 'Restore', false)) return;
+      if (!await confirmSheet('Restore this backup?', `${data.projects.length} projects and ${data.clients.length} brand(s) will be added. Items with the same ID are replaced.`, 'Restore', false)) return;
       for (const [k, v] of Object.entries(data.blobs || {})) await db.putBlob(await dataURLToBlob(v), k);
       for (const c of data.clients || []) await db.put('clients', c);
       for (const p of data.projects || []) await db.put('projects', p);

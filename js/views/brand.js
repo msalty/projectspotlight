@@ -1,30 +1,38 @@
+// Brand: the business identity used on every graphic — name, trade, contact info, logo,
+// color theme, font, badges and hashtags. Most people have one brand; a list appears only
+// if they add another (e.g. a second business). Stored as "clients" records for sync.
 import { $, $$, esc, chrome, sheet, confirmSheet, toast, pickFile, debounce } from '../ui.js';
 import { icon } from '../icons.js';
 import { state, loadAll, saveClient, deleteClient, saveProject } from '../store.js';
 import { render } from '../render.js';
-import { TRADES, tradeById, BADGES, FONT_STYLES, PALETTES, newClient, newProject } from '../presets.js';
+import { TRADES, tradeById, BADGES, FONT_STYLES, THEMES, ELEMENT_SIZES, themeFor, newClient, newProject } from '../presets.js';
 import { prepareImage, imageFor } from '../images.js';
 import { db } from '../db.js';
 import { mountSyncButton } from './syncbutton.js';
 
-export async function clientsView(root) {
+// Bottom-tab entry: straight into the brand editor, or a list when there is more than one brand.
+export async function brandTab(root, query) {
   await loadAll();
-  chrome({ title: 'Clients', large: true, tab: 'clients' });
+  if (state.clients.length > 1) return brandsView(root);
+  return brandView(root, state.clients[0]?.id || 'new', query, { tab: true });
+}
+
+export async function brandsView(root) {
+  await loadAll();
+  chrome({ title: 'Brands', large: true, tab: 'brand' });
   mountSyncButton();
   const count = (c) => state.projects.filter((p) => p.clientId === c.id).length;
   root.innerHTML = `
-    <p class="muted lead">Each client has its own logo, colors, contact info and trust badges.</p>
     <div class="client-list">
       ${state.clients.map((c) => `
         <a class="client-card" href="#/c/${c.id}">
           <span class="client-logo" style="background:${esc(c.primary)};color:${esc(c.accent)}" data-logo="${c.logo || ''}">${icon(tradeById(c.trade).icon)}</span>
-          <span class="client-meta"><b>${esc(c.name || 'Untitled client')}</b><small>${esc(tradeById(c.trade).label)} · ${count(c)} project${count(c) === 1 ? '' : 's'}</small></span>
+          <span class="client-meta"><b>${esc(c.name || 'Untitled brand')}</b><small>${esc(tradeById(c.trade).label)} · ${count(c)} project${count(c) === 1 ? '' : 's'}</small></span>
           <span class="swatches"><i style="background:${esc(c.primary)}"></i><i style="background:${esc(c.accent)}"></i></span>
           ${icon('chevron-right', 'chev')}
         </a>`).join('')}
     </div>
-    ${state.clients.length ? '' : `<div class="empty">${icon('briefcase')}<h3>No clients yet</h3><p>Add the business you're making posts for.</p></div>`}
-    <a class="fab" href="#/c/new">${icon('plus')}<span>Add client</span></a>`;
+    <a class="fab" href="#/c/new">${icon('plus')}<span>Add brand</span></a>`;
   for (const el of $$('[data-logo]', root)) {
     if (!el.dataset.logo) continue;
     imageFor(el.dataset.logo).then((img) => { if (img) { el.innerHTML = `<img src="${img.src}" alt="">`; el.classList.add('has-img'); } });
@@ -36,25 +44,37 @@ const DEMO = {
   description: 'Full gut renovation with custom cabinets, quartz counters and new lighting.',
 };
 
-export async function clientView(root, id, query) {
+const sizeSeg = (name, value) => `<div class="mini-seg size-pick" data-size-for="${name}">
+  ${Object.entries(ELEMENT_SIZES).map(([k, s]) => `<button data-v="${k}" class="${value === k ? 'on' : ''}" aria-label="${s.name}">${s.label}</button>`).join('')}
+</div>`;
+
+export async function brandView(root, id, query, opts = {}) {
   await loadAll();
   let c = state.clients.find((x) => x.id === id);
   let persisted = !!c;
   if (!c) c = newClient();
-  const forProject = new URLSearchParams(query || '').get('for');
+  c.logoSize ||= 'm';
+  c.qrSize ||= 'm';
+  const params = new URLSearchParams(query || '');
+  const forProject = params.get('for');
+  const from = params.get('from');
+  const back = opts.tab ? null : from ? '#/' + from : forProject ? '#/p/' + forProject : state.clients.length > 1 ? '#/brand' : '#/';
 
   chrome({
-    title: c.name || 'New client', back: forProject ? '#/p/' + forProject : '#/clients',
-    actions: `<button class="icon-btn" id="moreBtn" aria-label="Client options">${icon('ellipsis-vertical')}</button>`,
+    title: opts.tab ? 'Brand' : (c.name || 'New brand'), back, tab: opts.tab ? 'brand' : null,
+    actions: `<button class="icon-btn" id="moreBtn" aria-label="Brand options">${icon('ellipsis-vertical')}</button>`,
   });
+  if (opts.tab) mountSyncButton();
 
   const sample = state.projects.filter((p) => p.clientId === c.id).sort((a, b) => b.updated - a.updated)[0];
-  let previewProject = sample ? structuredClone(sample) : newProject({ ...DEMO, template: 'split' });
-  previewProject.show = { logo: true, badges: true, contact: true, qr: false };
+  const previewProject = sample ? structuredClone(sample) : newProject({ ...DEMO, template: 'split' });
+  previewProject.logoSize = ''; previewProject.qrSize = '';
+  const previewShow = () => { previewProject.show = { logo: true, badges: true, contact: true, qr: !!(c.website || c.bookingUrl) }; };
+  previewShow();
 
   const field = (key, label, attrs = '') => `<label class="field"><span>${label}</span><input data-k="${key}" value="${esc(c[key])}" ${attrs}></label>`;
   root.innerHTML = `
-  <div class="editor client-editor">
+  <div class="editor client-editor ${opts.tab ? 'in-tab' : ''}">
     <section class="stage">
       <div class="canvas-box" id="canvasBox"><canvas id="canvas" aria-label="Brand preview"></canvas></div>
       <div class="mini-seg center" id="previewTpl">
@@ -63,24 +83,31 @@ export async function clientView(root, id, query) {
     </section>
     <div class="editor-panel">
       <section class="pane">
-        <h3 class="pane-h">Trade</h3>
-        <div class="trade-grid">
-          ${TRADES.map((t) => `<button class="trade ${c.trade === t.id ? 'on' : ''}" data-trade="${t.id}" style="--tp:${t.primary};--ta:${t.accent}">${icon(t.icon)}<span>${esc(t.label)}</span></button>`).join('')}
-        </div>
-
         <h3 class="pane-h">Business</h3>
         ${field('name', 'Company name', 'autocomplete="organization" placeholder="Acme Electric"')}
+        <label class="field"><span>Trade <small>suggests job types, badges and hashtags</small></span>
+          <select id="fTrade">${TRADES.map((t) => `<option value="${t.id}" ${c.trade === t.id ? 'selected' : ''}>${esc(t.label)}</option>`).join('')}</select>
+        </label>
         ${field('tagline', 'Tagline', 'placeholder="Built right. Built to last."')}
         <div class="two">
           ${field('phone', 'Phone', 'type="tel" autocomplete="tel" placeholder="(555) 555-1234"')}
           ${field('website', 'Website', 'type="url" inputmode="url" autocapitalize="off" placeholder="acmeelectric.com"')}
         </div>
-        ${field('bookingUrl', 'Booking link for QR code <small>optional — defaults to website</small>', 'type="url" inputmode="url" autocapitalize="off" placeholder="https://…"')}
         ${field('serviceArea', 'Service area', 'placeholder="Chester County, PA"')}
         <div class="three">
           ${field('license', 'License #', 'placeholder="PA123456"')}
           ${field('years', 'Years in business', 'inputmode="numeric" placeholder="15"')}
           ${field('rating', 'Star rating', 'inputmode="decimal" placeholder="4.9"')}
+        </div>
+
+        <h3 class="pane-h">Color theme</h3>
+        <div class="theme-grid" id="themeGrid">
+          ${THEMES.map((t) => `<button class="theme-chip" data-theme="${t.id}"><i class="theme-swatch" style="--p:${t.primary};--a:${t.accent}"></i><span>${esc(t.name)}</span></button>`).join('')}
+          <button class="theme-chip" data-theme="custom"><i class="theme-swatch custom"></i><span>Custom colors</span></button>
+        </div>
+        <div class="two custom-colors" id="customColors">
+          <label class="color-field"><input type="color" data-k="primary" value="${esc(c.primary)}"><span><b>Background</b><small data-hex="primary">${esc(c.primary)}</small></span></label>
+          <label class="color-field"><input type="color" data-k="accent" value="${esc(c.accent)}"><span><b>Accent</b><small data-hex="accent">${esc(c.accent)}</small></span></label>
         </div>
 
         <h3 class="pane-h">Logo</h3>
@@ -92,15 +119,12 @@ export async function clientView(root, id, query) {
             <label class="switch-row compact"><span>White background</span><input type="checkbox" role="switch" id="logoChip"></label>
           </div>
         </div>
+        <div class="size-row"><span>Logo size</span>${sizeSeg('logo', c.logoSize)}</div>
 
-        <h3 class="pane-h">Colors</h3>
-        <div class="palette-row">
-          ${PALETTES.map(([a, b]) => `<button class="palette" data-pal="${a},${b}" aria-label="Palette ${a} ${b}"><i style="background:${a}"></i><i style="background:${b}"></i></button>`).join('')}
-        </div>
-        <div class="two">
-          <label class="color-field"><input type="color" data-k="primary" value="${esc(c.primary)}"><span><b>Primary</b><small data-hex="primary">${esc(c.primary)}</small></span></label>
-          <label class="color-field"><input type="color" data-k="accent" value="${esc(c.accent)}"><span><b>Accent</b><small data-hex="accent">${esc(c.accent)}</small></span></label>
-        </div>
+        <h3 class="pane-h">QR code</h3>
+        ${field('bookingUrl', 'QR code link <small>optional — defaults to your website</small>', 'type="url" inputmode="url" autocapitalize="off" placeholder="https://…"')}
+        <div class="size-row"><span>QR code size</span>${sizeSeg('qr', c.qrSize)}</div>
+        <p class="muted small">Turn the QR code on for a post in its <b>Design</b> tab. Posts can also use a different logo or QR size there.</p>
 
         <h3 class="pane-h">Headline font</h3>
         <div class="font-grid">
@@ -130,7 +154,7 @@ export async function clientView(root, id, query) {
     await saveClient(c);
     if (!persisted) {
       persisted = true;
-      history.replaceState(null, '', '#/c/' + c.id + (query ? '?' + query : ''));
+      if (!opts.tab) history.replaceState(null, '', '#/c/' + c.id + (query ? '?' + query : ''));
       if (forProject) {
         const p = state.projects.find((x) => x.id === forProject);
         if (p) { p.clientId = c.id; p.updated = Date.now(); await saveProject(p); }
@@ -147,28 +171,46 @@ export async function clientView(root, id, query) {
 
   $$('[data-k]', root).forEach((el) => el.addEventListener('input', () => {
     c[el.dataset.k] = el.value.trim();
-    if (el.type === 'color') $(`[data-hex="${el.dataset.k}"]`, root).textContent = el.value;
-    if (el.dataset.k === 'name') $('#appbar h1').textContent = c.name || 'New client';
+    if (el.type === 'color') { $(`[data-hex="${el.dataset.k}"]`, root).textContent = el.value; }
+    if (el.dataset.k === 'name' && !opts.tab) $('#appbar h1').textContent = c.name || 'New brand';
+    if (el.dataset.k === 'website' || el.dataset.k === 'bookingUrl') previewShow();
     changed();
   }));
 
-  $$('[data-trade]', root).forEach((b) => b.onclick = () => {
-    const prev = tradeById(c.trade), t = tradeById(b.dataset.trade);
+  // Trade drives suggestions only — never colors.
+  $('#fTrade', root).onchange = (e) => {
+    const prev = tradeById(c.trade), t = tradeById(e.target.value);
     c.trade = t.id;
-    c.primary = t.primary; c.accent = t.accent;
-    if (!c.hashtags || c.hashtags === prev.hashtags) c.hashtags = t.hashtags;
-    if (!c.badges.length) c.badges = t.badges.slice(0, 2);
-    $$('[data-trade]', root).forEach((x) => x.classList.toggle('on', x === b));
-    syncColors(); renderBadges();
-    $('[data-k="hashtags"]', root).value = c.hashtags;
-    toast(`${t.label} colors applied`);
+    if (!c.hashtags || c.hashtags === prev.hashtags) { c.hashtags = t.hashtags; $('[data-k="hashtags"]', root).value = c.hashtags; }
+    if (!c.badges.length) { c.badges = t.badges.slice(0, 2); renderBadges(); }
     changed();
-  });
+  };
 
-  function syncColors() {
+  // A theme chip is highlighted when the colors match it; "Custom" shows the color pickers.
+  let customOpen = !themeFor(c);
+  function syncThemes() {
+    const match = customOpen ? null : themeFor(c);
+    const active = match ? match.id : 'custom';
+    $$('[data-theme]', root).forEach((b) => b.classList.toggle('on', b.dataset.theme === active));
+    $('#customColors', root).hidden = active !== 'custom';
     for (const k of ['primary', 'accent']) { $(`input[data-k="${k}"]`, root).value = c[k]; $(`[data-hex="${k}"]`, root).textContent = c[k]; }
   }
-  $$('[data-pal]', root).forEach((b) => b.onclick = () => { [c.primary, c.accent] = b.dataset.pal.split(','); syncColors(); changed(); });
+  $$('[data-theme]', root).forEach((b) => b.onclick = () => {
+    if (b.dataset.theme === 'custom') { customOpen = true; syncThemes(); return; }
+    const t = THEMES.find((x) => x.id === b.dataset.theme);
+    c.primary = t.primary; c.accent = t.accent;
+    customOpen = false;
+    syncThemes(); changed();
+  });
+
+  $$('[data-size-for]', root).forEach((seg) => seg.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-v]');
+    if (!b) return;
+    c[seg.dataset.sizeFor === 'logo' ? 'logoSize' : 'qrSize'] = b.dataset.v;
+    $$('[data-v]', seg).forEach((x) => x.classList.toggle('on', x === b));
+    changed();
+  }));
+
   $$('[data-font]', root).forEach((b) => b.onclick = () => { c.font = b.dataset.font; $$('[data-font]', root).forEach((x) => x.classList.toggle('on', x === b)); changed(); });
   $$('[data-pt]', root).forEach((b) => b.onclick = () => {
     previewProject.template = b.dataset.pt;
@@ -215,22 +257,26 @@ export async function clientView(root, id, query) {
 
   $('#moreBtn').onclick = async () => {
     const used = state.projects.filter((p) => p.clientId === c.id).length;
-    const v = await sheet({ title: c.name || 'Client', actions: [
-      { label: 'New project for this client', icon: 'plus', value: 'new' },
-      { label: 'Delete client', icon: 'trash-2', danger: true, value: 'del' },
+    const multiple = state.clients.length > 1;
+    const v = await sheet({ title: c.name || 'Brand', actions: [
+      { label: 'New project with this brand', icon: 'plus', value: 'new' },
+      { label: 'Add another brand', icon: 'briefcase', value: 'add' },
+      ...(multiple || !persisted ? [{ label: 'Delete this brand', icon: 'trash-2', danger: true, value: 'del' }] : []),
     ] });
     if (v === 'new') { await save(); location.hash = '#/new?client=' + c.id; }
+    if (v === 'add') { if (saveTimer || !persisted) await save(); location.hash = '#/c/new'; }
     if (v === 'del') {
       if (used) return toast(`Move or delete its ${used} project${used === 1 ? '' : 's'} first.`);
-      if (!persisted || await confirmSheet('Delete this client?', 'Its logo and brand settings will be removed.', 'Delete client')) {
+      if (!persisted || await confirmSheet('Delete this brand?', 'Its logo and settings will be removed.', 'Delete brand')) {
         clearTimeout(saveTimer);
         if (persisted) await deleteClient(c.id);
         persisted = true; // nothing left to save
-        location.hash = '#/clients';
+        location.hash = '#/brand';
       }
     }
   };
 
+  syncThemes();
   renderBadges();
   await renderLogo();
   await render(canvas, previewProject, c, 0);
