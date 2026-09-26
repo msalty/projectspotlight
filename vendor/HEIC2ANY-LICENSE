@@ -1,0 +1,3 @@
+heic2any.min.js — heic2any 0.0.4 by Alex Corvi (https://github.com/alexcorvi/heic2any), MIT license.
+It bundles libheif (https://github.com/strukturag/libheif), licensed under the GNU LGPL v3.
+This file is loaded only when a phone hands the app a HEIC/HEIF photo its browser can't decode.

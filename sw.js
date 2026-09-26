@@ -1,6 +1,6 @@
 // Offline support. App code is network-first (always fresh when online, cached copy when
 // offline) so a new deploy is picked up on the next launch; fonts and icons are cache-first.
-const CACHE = 'project-spotlight-v10';
+const CACHE = 'project-spotlight-v11';
 const SHELL = [
   './', './index.html', './css/app.css', './manifest.webmanifest',
   './js/app.js', './js/ui.js', './js/pwa.js', './js/db.js', './js/store.js', './js/images.js', './js/migrate.js',
