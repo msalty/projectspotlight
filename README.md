@@ -23,6 +23,11 @@ remodelers — to turn finished jobs into branded before & after social posts in
 - **Google Sync** — projects and clients in a Google Sheet, photos and logos in Google Drive, so the
   app works across all your devices. Runs on a free Apps Script in your own Google account; see
   [google/README.md](google/README.md) for the 5-minute setup. Finished graphics can be saved to Drive too.
+- **Write it with AI** — a few words about the job (plus, optionally, the photos) become a title,
+  description, category, caption and hashtags, written by Claude through your Google script so the
+  API key never reaches the phone. One tap to undo.
+- **Location from photos or GPS** — GPS data in an uploaded photo, or the phone's current position,
+  fills in "Town, ST" automatically (never a street address; coordinates are rounded to ~1 km).
 - **Backup / restore** of everything to a single JSON file (Settings).
 
 ## Run locally
@@ -48,9 +53,10 @@ Then open `http://localhost:8080`. There is no build step.
 | `js/images.js` | Photo downscaling and decoded image cache |
 | `js/migrate.js` | One-time import from the previous version |
 | `js/sync.js` | Two-way Google Sheets/Drive sync (last write wins, deletions as tombstones) |
-| `google/Code.gs` | Apps Script backend to paste into a Google Sheet |
+| `js/location.js` | Photo EXIF / GPS location and place-name lookup |
+| `google/Code.gs` | Apps Script backend to paste into a Google Sheet (sync, AI writing, geocoding) |
 | `sw.js` | Offline cache (network-first for app code, cache-first for fonts/icons) |
-| `fonts/`, `vendor/`, `js/icons-data.js` | Self-hosted fonts, QR code library (MIT), Lucide icons (ISC) |
+| `fonts/`, `vendor/`, `js/icons-data.js` | Self-hosted fonts, QR code library (MIT), exifr EXIF reader (MIT), Lucide icons (ISC) |
 
 ## Data model
 
@@ -62,7 +68,7 @@ ID. Sync mirrors records to rows in the Google Sheet and blobs to files in Googl
 The included workflow publishes the app through GitHub Pages. In repository settings, set
 **Pages → Build and deployment → Source** to **GitHub Actions** if it is not already enabled.
 
-## Next phase
+## Ideas for later
 
-AI-written descriptions and captions (through the same Apps Script, keeping the API key private) and
-location from photo EXIF data or phone GPS.
+More templates (seasonal, "we're hiring", team spotlight), scheduling posts, a finished-jobs map, and
+AI-suggested template and photo crop.

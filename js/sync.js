@@ -60,7 +60,7 @@ export async function connect(url, token) {
   const info = await call({ url, token }, 'info');
   const prev = await getConfig();
   const sameServer = prev.url === url;
-  await saveConfig({ ...DEFAULTS, ...(sameServer ? prev : {}), url, token, sheetUrl: info.sheetUrl, folderUrl: info.folderUrl });
+  await saveConfig({ ...DEFAULTS, ...(sameServer ? prev : {}), url, token, sheetUrl: info.sheetUrl, folderUrl: info.folderUrl, ai: info.ai === true });
   installTriggers();
   return syncNow();
 }
@@ -138,6 +138,7 @@ async function pull(cfg) {
   }
   if (resolved.length) await dropTombs(resolved);
   cfg.lastPull = res.now;
+  cfg.ai = res.ai === true;
   await saveConfig(cfg);
   await downloadMissingBlobs(cfg);
   return changed;
@@ -186,6 +187,23 @@ async function push(cfg) {
   for (const t of deleted) delete cfg.known[t.id];
   await saveConfig(cfg);
   return stale.size > 0;
+}
+
+// Direct request to the Google script (used for AI writing and place names).
+export async function serverCall(action, payload) {
+  const cfg = await getConfig();
+  if (!isConnected(cfg)) throw new Error('Connect Google Sync in Settings first.');
+  return call(cfg, action, payload);
+}
+
+// Refreshes whether the connected script has AI writing turned on.
+export async function refreshAiFlag() {
+  const cfg = await getConfig();
+  if (!isConnected(cfg)) return false;
+  const info = await call(cfg, 'info');
+  cfg.ai = info.ai === true;
+  await saveConfig(cfg);
+  return cfg.ai;
 }
 
 // Saves finished graphics into the Drive "Graphics" folder. Returns the folder URL.

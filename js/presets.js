@@ -130,6 +130,9 @@ export function newProject(overrides = {}) {
     show: { logo: true, badges: true, contact: true, qr: false },
     review: { text: '', name: '' },
     offer: { headline: '', details: '', cta: 'Call today' },
+    notes: '',           // a few words for the AI writer
+    tone: 'professional',
+    photoMeta: {},       // slot -> { lat, lon, taken } read from the original photo's EXIF
     created: Date.now(),
     updated: Date.now(),
     ...overrides,

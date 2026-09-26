@@ -3,10 +3,11 @@ import { icon } from '../icons.js';
 import { state, loadAll, clientFor, saveProject, deleteProject } from '../store.js';
 import { render, renderBlob, TEMPLATES, templateById, pageCount } from '../render.js';
 import { SIZES, FONT_STYLES, HEADLINE_TAGS, tradeById } from '../presets.js';
-import { prepareImage, imageFor } from '../images.js';
+import { prepareImage, imageFor, aiImageData } from '../images.js';
 import { db, collectGarbage } from '../db.js';
-import { buildCaption } from '../caption.js';
-import { getConfig, isConnected, saveGraphicsToDrive } from '../sync.js';
+import { buildCaption, composeCaption } from '../caption.js';
+import { getConfig, isConnected, saveGraphicsToDrive, serverCall, refreshAiFlag } from '../sync.js';
+import { photoMeta, currentPosition, placeName } from '../location.js';
 
 let lastTab = 'photos';
 const touchUI = matchMedia('(pointer: coarse)').matches;
@@ -18,6 +19,7 @@ export async function editorView(root, id) {
   let persisted = !!p;
   if (!p && state.pendingProject?.id === id) p = state.pendingProject;
   if (!p) { toast('Project not found'); location.replace('#/'); return; }
+  p.notes ??= ''; p.tone ||= 'professional'; p.photoMeta ||= {};
   let client = clientFor(p);
   let page = 0, slots = [], selected = p.photos.after ? 'after' : 'before';
   let tab = lastTab;
@@ -69,6 +71,16 @@ export async function editorView(root, id) {
       </section>
 
       <section class="pane" data-pane="details">
+        <div class="card ai-card" id="aiCard">
+          <div class="ai-head">${icon('wand-sparkles')}<b>Write it with AI</b><small id="aiStatus"></small></div>
+          <textarea id="fNotes" rows="2" placeholder="A few words about the job — e.g. swapped old fuse box for a 200A panel, added surge protection">${esc(p.notes)}</textarea>
+          <div class="ai-row">
+            <div class="mini-seg" id="toneSeg">${['professional', 'friendly', 'bold'].map((t) => `<button data-tone="${t}">${t}</button>`).join('')}</div>
+            <label class="switch-row compact"><span>Use photos</span><input type="checkbox" role="switch" id="aiPhotos" checked></label>
+          </div>
+          <button class="btn primary" id="aiBtn">${icon('sparkles')}<span>Write title, description &amp; caption</span></button>
+          <p class="muted small" id="aiNote" hidden></p>
+        </div>
         <label class="field"><span>Client / brand</span>
           <div class="row gap">
             <select id="fClient">${state.clients.map((c) => `<option value="${c.id}">${esc(c.name || 'Untitled client')}</option>`).join('')}<option value="__new">+ Add a new client…</option></select>
@@ -80,7 +92,13 @@ export async function editorView(root, id) {
           <input id="fCategory" autocomplete="off" enterkeyhint="next" placeholder="Kitchen, Panel Upgrade…" value="${esc(p.category)}">
           <div class="chip-row tight" id="catChips"></div>
         </div>
-        <label class="field"><span>Location</span><input id="fLocation" autocomplete="address-level2" enterkeyhint="next" placeholder="West Chester, PA" value="${esc(p.location)}"></label>
+        <div class="field"><span>Location <small>town and state only</small></span>
+          <div class="row gap">
+            <input id="fLocation" autocomplete="address-level2" enterkeyhint="next" placeholder="West Chester, PA" value="${esc(p.location)}">
+            <button class="btn tonal sm loc-btn" id="gpsBtn" aria-label="Use my current location">${icon('locate-fixed')}<span>Here</span></button>
+          </div>
+          <div class="chip-row tight" id="locChips"></div>
+        </div>
         <label class="field"><span>Description <small id="descCount"></small></span>
           <textarea id="fDesc" rows="4" placeholder="What did you do? Keep it short — 1–3 sentences work best.">${esc(p.description)}</textarea></label>
         <div class="field"><span>Headline tag</span>
@@ -184,6 +202,7 @@ export async function editorView(root, id) {
   // ------------------------------------------------------------ tabs
   function showTab(k) {
     tab = lastTab = k;
+    $('.editor', root).dataset.tab = k;
     $$('.seg-tabs button', root).forEach((b) => b.classList.toggle('on', b.dataset.tab === k));
     $$('.pane', root).forEach((s) => s.hidden = s.dataset.pane !== k);
     if (k === 'design') thumbsLater(0);
@@ -224,9 +243,11 @@ export async function editorView(root, id) {
     const tile = $(`.slot-tile[data-slot="${k}"]`, root);
     tile.classList.add('busy');
     try {
-      const blob = await prepareImage(file);
+      const [blob, meta] = await Promise.all([prepareImage(file), photoMeta(file)]);
       p.photos[k] = await db.putBlob(blob);
       delete p.adjust[k];
+      p.photoMeta[k] = meta;
+      if (meta.lat != null) locationFromPhoto(k, meta);
       selected = k;
       changed();
       await renderSlots();
@@ -245,7 +266,7 @@ export async function editorView(root, id) {
     if (act === 'camera') return addPhoto(k, true);
     if (act === 'library') return addPhoto(k, false);
     if (act === 'remove') {
-      p.photos[k] = null; delete p.adjust[k]; changed(); renderSlots(); return;
+      p.photos[k] = null; delete p.adjust[k]; delete p.photoMeta[k]; changed(); renderSlots(); renderLocChips(); return;
     }
     if (act === 'replace') {
       if (!touchUI) return addPhoto(k, false);
@@ -260,6 +281,7 @@ export async function editorView(root, id) {
   $('#swapBtn', root).onclick = () => {
     p.photos = { before: p.photos.after, after: p.photos.before };
     p.adjust = { before: p.adjust.after, after: p.adjust.before };
+    p.photoMeta = { before: p.photoMeta.after, after: p.photoMeta.before };
     changed(); renderSlots();
   };
   $$('[data-sel]', root).forEach((b) => b.onclick = () => { selected = b.dataset.sel; renderSlots(); });
@@ -362,6 +384,112 @@ export async function editorView(root, id) {
     $('#editClient', root).href = '#/c/' + client.id;
     renderCatChips();
     changed();
+  };
+
+  // ------------------------------------------------------------ location
+  const setLocation = (place) => {
+    const prev = p.location;
+    p.location = place;
+    $('#fLocation', root).value = place;
+    changed();
+    renderLocChips();
+    return prev;
+  };
+  // A new photo with GPS data fills an empty location; otherwise it's offered as a chip.
+  async function locationFromPhoto(k, meta) {
+    try {
+      const place = await placeName(meta.lat, meta.lon);
+      if (!place) return;
+      meta.place = place;
+      if (!p.location) {
+        const prev = setLocation(place);
+        toast(`Location set from the ${k} photo: ${place}`, { label: 'Undo', onClick: () => setLocation(prev) });
+      } else renderLocChips();
+    } catch { /* offline: the chip can be used later */ }
+  }
+  function renderLocChips() {
+    const places = [...new Set(Object.values(p.photoMeta || {}).map((m) => m && m.place).filter((x) => x && x !== p.location))];
+    $('#locChips', root).innerHTML = places.map((pl) => `<button class="chip sm" data-place="${esc(pl)}">${icon('map-pin')}From photo: ${esc(pl)}</button>`).join('');
+    $$('[data-place]', root).forEach((b) => b.onclick = () => setLocation(b.dataset.place));
+  }
+  $('#gpsBtn', root).onclick = async (e) => {
+    const btn = e.currentTarget;
+    btn.disabled = true;
+    btn.classList.add('spin');
+    try {
+      const pos = await currentPosition();
+      const place = await placeName(pos.lat, pos.lon);
+      if (!place) throw new Error('Couldn\'t find a town for your location.');
+      const prev = setLocation(place);
+      toast(`Location set to ${place}`, prev ? { label: 'Undo', onClick: () => setLocation(prev) } : null);
+    } catch (err) { toast(err.message); } finally { btn.disabled = false; btn.classList.remove('spin'); }
+  };
+
+  // ------------------------------------------------------------ AI writing
+  $('#fNotes', root).addEventListener('input', (e) => { p.notes = e.target.value; changed({ redraw: false }); });
+  const syncTone = () => $$('[data-tone]', root).forEach((b) => b.classList.toggle('on', b.dataset.tone === p.tone));
+  $$('[data-tone]', root).forEach((b) => b.onclick = () => { p.tone = b.dataset.tone; syncTone(); changed({ redraw: false }); });
+  syncTone();
+
+  async function aiAvailability() {
+    const cfg = await getConfig();
+    const note = $('#aiNote', root), btn = $('#aiBtn', root);
+    let msg = '';
+    if (!isConnected(cfg)) msg = 'Connect Google Sync in Settings to turn on AI writing.';
+    else if (!cfg.ai) {
+      try { if (!await refreshAiFlag()) msg = 'Add your Claude API key to the Google script to turn this on (see the setup guide).'; }
+      catch { msg = navigator.onLine ? 'Couldn\'t reach your Google script.' : 'AI writing needs an internet connection.'; }
+    }
+    note.textContent = msg;
+    note.hidden = !msg;
+    btn.disabled = !!msg;
+    $('#aiCard', root).classList.toggle('off', !!msg);
+  }
+
+  $('#aiBtn', root).onclick = async (e) => {
+    const btn = e.currentTarget;
+    if (!p.notes.trim() && !p.photos.before && !p.photos.after) { toast('Add a few words or a photo first.'); $('#fNotes', root).focus(); return; }
+    btn.disabled = true;
+    const label = btn.innerHTML;
+    btn.innerHTML = `${icon('loader-circle', 'spin')}<span>Writing…</span>`;
+    try {
+      const images = [];
+      if ($('#aiPhotos', root).checked) {
+        for (const k of ['before', 'after']) {
+          if (!p.photos[k]) continue;
+          const data = await aiImageData(p.photos[k]);
+          if (data) images.push({ label: k === 'before' ? 'Before' : 'After', mime: 'image/jpeg', data });
+        }
+      }
+      const res = await serverCall('aiWrite', {
+        notes: p.notes, tone: p.tone, images,
+        client: { name: client.name, trade: tradeById(client.trade).label, serviceArea: client.serviceArea },
+        project: { title: p.title, description: p.description, category: p.category, location: p.location },
+      });
+      const ai = res.copy || {};
+      const prev = { title: p.title, description: p.description, category: p.category, caption: p.caption };
+      const apply = (v) => {
+        Object.assign(p, v);
+        $('#fTitle', root).value = p.title;
+        $('#fDesc', root).value = p.description;
+        $('#fCategory', root).value = p.category;
+        $('#appbar h1').textContent = p.title || 'New project';
+        updateCount(); renderCatChips(); refreshCaption();
+        changed();
+      };
+      apply({
+        title: ai.title || p.title,
+        description: ai.description || p.description,
+        category: ai.category || p.category,
+        caption: composeCaption(ai, client),
+      });
+      toast('Written — review and tweak anything', { label: 'Undo', onClick: () => apply(prev) });
+    } catch (err) {
+      toast(err.message);
+    } finally {
+      btn.innerHTML = label;
+      btn.disabled = false;
+    }
   };
 
   // ------------------------------------------------------------ design
@@ -519,6 +647,8 @@ export async function editorView(root, id) {
 
   // ------------------------------------------------------------ init
   renderCatChips();
+  renderLocChips();
+  aiAvailability();
   syncDesign();
   showTab(tab);
   await renderSlots();

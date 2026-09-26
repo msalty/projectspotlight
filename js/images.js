@@ -62,3 +62,15 @@ export function blobToDataURL(blob) {
 }
 
 export const dataURLToBlob = (url) => fetch(url).then((r) => r.blob());
+
+// Small JPEG (max 1024px) as base64, for sending photos to the AI writer.
+export async function aiImageData(id, maxEdge = 1024) {
+  const img = await imageFor(id);
+  if (!img) return null;
+  const scale = Math.min(1, maxEdge / Math.max(img.naturalWidth, img.naturalHeight));
+  const c = document.createElement('canvas');
+  c.width = Math.round(img.naturalWidth * scale);
+  c.height = Math.round(img.naturalHeight * scale);
+  c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+  return c.toDataURL('image/jpeg', 0.8).split(',')[1];
+}

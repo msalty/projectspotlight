@@ -53,6 +53,32 @@ The first sync uploads everything on that device. Other devices download it when
 After that, changes sync automatically: a few seconds after you edit, when the app opens, and when
 the device comes back online. The cloud button on the Projects screen syncs on demand.
 
+## 5. Optional: turn on AI writing
+
+The **Write it with AI** card in the project editor (Details tab) turns a few words like *"swapped
+fuse box for 200A panel, added surge protector"* into a title, description, category, caption and
+hashtags. It can also look at your before/after photos. It uses Claude, Anthropic's AI model,
+through your script, so the API key stays in your Google account and never goes to the phone.
+
+1. Create an API key at [console.anthropic.com](https://console.anthropic.com) (Settings → API keys)
+   and add a little credit under Billing.
+2. In the Apps Script editor open **Project Settings** (gear icon) → **Script Properties** →
+   **Add script property**:
+   - Property: `ANTHROPIC_API_KEY`
+   - Value: your key (starts with `sk-ant-`)
+3. Back in the editor, pick **`testAi`** in the function drop-down and click **Run**. Google asks for one
+   more permission ("Connect to an external service"). Allow it. The execution log should show a
+   sample title, description and caption.
+
+That's it. The app picks it up the next time it syncs.
+
+**Cost.** You pay Anthropic directly for what you use. The default model, `claude-opus-5`, costs
+roughly 3–5 cents per "Write" with two photos attached. To trade some quality for about a fifth
+of the price, add a second Script Property, `CLAUDE_MODEL` = `claude-haiku-4-5`.
+
+**Location lookups** ("Here" button, or GPS data in a photo) use Google's geocoder through the same
+script. Without Google Sync the app falls back to OpenStreetMap. Only the town and state are used.
+
 ## How it behaves
 
 - **Last edit wins.** If the same project is edited on two devices, the most recent edit is kept.
@@ -66,8 +92,14 @@ the device comes back online. The cloud button on the Projects screen syncs on d
 
 ## Updating the script later
 
-If a new version of `Code.gs` is released, paste it in, save, then **Deploy → Manage deployments →
-✏️ Edit → Version: New version → Deploy**. This keeps the same URL, so the devices don't need changes.
+When a new version of `Code.gs` is released (for example, the one that added AI writing):
+
+1. Replace the code in the editor with the new `Code.gs` and save.
+2. Run **`setup`** once more (safe to repeat: it keeps your key and data), and allow any new permissions.
+3. **Deploy → Manage deployments → ✏️ Edit → Version: New version → Deploy.**
+
+This keeps the same URL, so the devices don't need changes. Until you deploy a new version, the old
+code keeps running.
 
 ## Security
 
@@ -84,3 +116,6 @@ If a new version of `Code.gs` is released, paste it in, save, then **Deploy → 
 | *Unexpected reply from Google* | The deployment's access must be **Anyone**, and the URL must end in `/exec`, not `/dev`. |
 | *Could not reach Google* | Check the URL and your connection. |
 | Changes don't appear on another device | Tap the cloud button on the Projects screen, or **Sync now** in Settings. |
+| *Add your Claude API key to the Google script* | Add `ANTHROPIC_API_KEY` (step 5), then deploy a new version if you just updated the code. |
+| *Your Claude API key was rejected* | Re-copy the key from console.anthropic.com. Check your account has credit. |
+| *Claude is busy right now* | Wait a minute and try again. |

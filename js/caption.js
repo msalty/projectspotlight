@@ -26,3 +26,10 @@ export function buildCaption(p, c) {
   lines.push([...tags].slice(0, 12).join(' '));
   return lines.join('\n\n');
 }
+
+// Caption from the AI writer, with the business's contact line and hashtags added.
+export function composeCaption(ai, c) {
+  const contact = [c.phone && `📞 ${c.phone}`, c.website && `🌐 ${c.website.replace(/^https?:\/\//, '')}`].filter(Boolean).join('  ');
+  const tags = (ai.hashtags || []).map((t) => (t.startsWith('#') ? t : '#' + t).replace(/\s+/g, '')).join(' ');
+  return [String(ai.caption || '').trim(), contact, tags].filter(Boolean).join('\n\n');
+}

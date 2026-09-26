@@ -244,7 +244,10 @@ input[type=range] { flex: 1; accent-color: var(--brand); height: 32px; }
 }
 .canvas-box canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; }
 .canvas-box canvas.dragging { cursor: grabbing; }
-body.typing { --preview-h: 22svh; }
+/* Smaller preview on the form-heavy tabs so there's room to type on a phone. */
+.editor[data-tab=details] { --preview-h: 24svh; }
+.editor[data-tab=share] { --preview-h: 30svh; }
+body.typing .editor { --preview-h: 18svh; }
 .client-editor { --preview-h: 30svh; }
 .client-editor .stage { padding-bottom: 10px; box-shadow: 0 8px 12px -12px rgba(0,0,0,.25); }
 .stage-hint { display: flex; align-items: center; justify-content: center; gap: 6px; margin: 8px 0 0; font-size: 12px; color: var(--muted); }
@@ -321,6 +324,16 @@ body.typing .action-bar { display: none; }
 .drive-card > .i { width: 26px; height: 26px; color: var(--brand); }
 .drive-card > div { flex: 1; display: flex; flex-direction: column; }
 .drive-card small { color: var(--muted); font-size: 13px; }
+
+.ai-card { padding: 14px 16px 16px; margin-bottom: 18px; display: grid; gap: 10px; border: 1px solid color-mix(in srgb, var(--brand) 45%, transparent); background: linear-gradient(160deg, color-mix(in srgb, var(--brand) 10%, var(--surface)), var(--surface) 60%); }
+.ai-head { display: flex; align-items: center; gap: 8px; }
+.ai-head .i { color: var(--brand); }
+.ai-head small { margin-left: auto; color: var(--muted); font-size: 12px; }
+.ai-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.ai-card .btn { width: 100%; }
+.ai-card.off textarea, .ai-card.off .ai-row { opacity: .55; }
+.i.spin, .spin .i { animation: spin 1s linear infinite; }
+.loc-btn { min-height: 48px; }
 
 /* ---------------------------------------------------------------- clients */
 .client-list { display: grid; gap: 10px; }
@@ -401,15 +414,15 @@ body.typing .action-bar { display: none; }
 .sheet-btn.cancel { justify-content: center; background: none; color: var(--muted); }
 
 #toast {
-  position: fixed; z-index: 60; left: 50%; bottom: calc(var(--tabbar-h) + var(--safe-b) + 16px);
-  display: flex; align-items: center; gap: 12px; max-width: calc(100vw - 32px); padding: 12px 16px; border-radius: 14px;
+  position: fixed; z-index: 60; left: 16px; right: 16px; margin: 0 auto; width: fit-content; bottom: calc(var(--tabbar-h) + var(--safe-b) + 16px);
+  display: flex; align-items: center; gap: 12px; max-width: 480px; padding: 12px 16px; border-radius: 14px;
   background: #0f1b2d; color: #fff; font-size: 14px; font-weight: 600; box-shadow: 0 10px 30px rgba(0, 0, 0, .3);
-  transform: translate(-50%, 20px); opacity: 0; pointer-events: none; transition: transform .25s, opacity .25s;
+  transform: translateY(20px); opacity: 0; pointer-events: none; transition: transform .25s, opacity .25s;
 }
-#toast.show { transform: translate(-50%, 0); opacity: 1; pointer-events: auto; }
+#toast.show { transform: none; opacity: 1; pointer-events: auto; }
 body.has-tabs #toast { bottom: calc(var(--tabbar-h) + var(--safe-b) + 84px); }
 body:not(.has-tabs) #toast { bottom: calc(var(--safe-b) + 86px); }
-#toast button { border: 0; background: none; color: var(--brand); font-weight: 800; }
+#toast button { border: 0; background: none; color: var(--brand); font-weight: 800; flex: none; padding: 6px 4px; }
 @media (prefers-color-scheme: dark) { #toast { background: #e8eef6; color: #0f1b2d; } #toast button { color: #a16207; } }
 
 /* ---------------------------------------------------------------- larger screens */
@@ -423,7 +436,7 @@ body:not(.has-tabs) #toast { bottom: calc(var(--safe-b) + 86px); }
 
 @media (min-width: 960px) {
   :root { --preview-h: calc(100dvh - var(--appbar-h) - 150px); }
-  body.typing { --preview-h: calc(100dvh - var(--appbar-h) - 150px); }
+  .editor, .editor[data-tab], body.typing .editor { --preview-h: calc(100dvh - var(--appbar-h) - 150px); }
   .view { padding-left: 24px; padding-right: 24px; }
   .project-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .tabbar {

@@ -1,12 +1,12 @@
 // Offline support. App code is network-first (always fresh when online, cached copy when
 // offline) so a new deploy is picked up on the next launch; fonts and icons are cache-first.
-const CACHE = 'project-spotlight-v6';
+const CACHE = 'project-spotlight-v7';
 const SHELL = [
   './', './index.html', './css/app.css', './manifest.webmanifest',
   './js/app.js', './js/ui.js', './js/pwa.js', './js/db.js', './js/store.js', './js/images.js', './js/migrate.js',
-  './js/render.js', './js/presets.js', './js/icons.js', './js/icons-data.js', './js/caption.js', './js/sync.js',
+  './js/render.js', './js/presets.js', './js/icons.js', './js/icons-data.js', './js/caption.js', './js/sync.js', './js/location.js',
   './js/views/home.js', './js/views/editor.js', './js/views/client.js', './js/views/settings.js', './js/views/syncbutton.js',
-  './vendor/qrcode.mjs',
+  './vendor/qrcode.mjs', './vendor/exifr-lite.mjs',
   './fonts/anton.woff2', './fonts/archivo-black.woff2', './fonts/bebas-neue.woff2', './fonts/oswald-700.woff2',
   './fonts/inter-400.woff2', './fonts/inter-600.woff2', './fonts/inter-800.woff2',
   './icons/icon.svg', './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png',
