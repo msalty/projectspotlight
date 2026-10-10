@@ -2,7 +2,6 @@
   "name": "Project Spotlight",
   "short_name": "Spotlight",
   "description": "Turn finished jobs into branded before & after social posts.",
-  "id": "./",
   "start_url": "./#/",
   "scope": "./",
   "display": "standalone",

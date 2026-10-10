@@ -1,6 +1,13 @@
 // Offline support. App code is network-first (always fresh when online, cached copy when
 // offline) so a new deploy is picked up on the next launch; fonts and icons are cache-first.
-const CACHE = 'project-spotlight-v11';
+// Cache Storage is shared by every app on the origin, so the cache name is namespaced by this
+// app's directory and we only ever read from, or delete, our own caches.
+const SCOPE = new URL('./', self.location);
+const CACHE_NS = 'project-spotlight:' + SCOPE.pathname + '|'; // trailing "|" stops "/" matching "/app/"
+const CACHE = CACHE_NS + 'v12';
+const LEGACY = /^project-spotlight-v\d+$/; // un-namespaced names used up to v11
+const ours = (k) => k !== CACHE && (k.startsWith(CACHE_NS) || LEGACY.test(k));
+const match = (req, opts) => caches.open(CACHE).then((c) => c.match(req, opts));
 const SHELL = [
   './', './index.html', './css/app.css', './manifest.webmanifest',
   './js/app.js', './js/ui.js', './js/pwa.js', './js/db.js', './js/store.js', './js/images.js', './js/migrate.js',
@@ -20,7 +27,7 @@ self.addEventListener('install', (e) => {
 self.addEventListener('activate', (e) => {
   e.waitUntil(Promise.all([
     self.clients.claim(),
-    caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))),
+    caches.keys().then((keys) => Promise.all(keys.filter(ours).map((k) => caches.delete(k)))),
   ]));
 });
 
@@ -30,7 +37,7 @@ self.addEventListener('fetch', (e) => {
   if (req.method !== 'GET' || url.origin !== location.origin) return;
   const cacheFirst = /\/(fonts|icons|vendor)\//.test(url.pathname);
   if (cacheFirst) {
-    e.respondWith(caches.match(req).then((hit) => hit || fetch(req).then((res) => {
+    e.respondWith(match(req).then((hit) => hit || fetch(req).then((res) => {
       if (res.ok) { const copy = res.clone(); caches.open(CACHE).then((c) => c.put(req, copy)); }
       return res;
     })));
@@ -39,6 +46,6 @@ self.addEventListener('fetch', (e) => {
   e.respondWith(fetch(req, { cache: 'no-cache' }).then((res) => {
     if (res.ok) { const copy = res.clone(); caches.open(CACHE).then((c) => c.put(req, copy)); }
     return res;
-  }).catch(() => caches.match(req, { ignoreSearch: true })
-    .then((hit) => hit || (req.mode === 'navigate' ? caches.match('./index.html') : Response.error()))));
+  }).catch(() => match(req, { ignoreSearch: true })
+    .then((hit) => hit || (req.mode === 'navigate' ? match('./index.html') : Response.error()))));
 });
